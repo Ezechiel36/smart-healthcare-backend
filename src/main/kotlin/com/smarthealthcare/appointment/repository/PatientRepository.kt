@@ -1,4 +1,5 @@
-﻿package com.smarthealthcare.appointment.repository
+package com.smarthealthcare.appointment.repository
+
 import com.smarthealthcare.appointment.model.Patient
 import org.springframework.data.jpa.repository.JpaRepository
 
