@@ -1,10 +1,13 @@
-﻿package com.smarthealthcare.appointment.model
+package com.smarthealthcare.appointment.model
+
 import jakarta.persistence.*
 
 @Entity
-data class Patient(
-@Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-val id: Long = 0,
-val name: String,
-val email: String
+@Table(name = "patients")
+class Patient(
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    var id: Long? = null,
+    var name: String = "",
+    var email: String = "",
+    var phone: String = ""
 )
