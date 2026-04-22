@@ -1,0 +1,19 @@
+name: Deploy Frontend
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'frontend/**'
+  workflow_dispatch:
+
+jobs:
+  deploy-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Frontend Deployment Webhook
+        run: |
+          curl -X POST ${{ secrets.DEPLOY_WEBHOOK }} \
+            -H "Content-Type: application/json" \
+            -d '{"action": "deploy-frontend", "branch": "${{ github.ref_name }}"}'

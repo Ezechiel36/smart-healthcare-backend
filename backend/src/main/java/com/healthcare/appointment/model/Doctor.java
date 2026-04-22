@@ -17,6 +17,9 @@ public class Doctor {
     @Column(nullable = false)
     private String specialization;
 
+    @Column(nullable = false)
+    private Boolean approved = false;
+
     // Constructors
     public Doctor() {}
 
@@ -48,6 +51,14 @@ public class Doctor {
 
     public void setSpecialization(String specialization) {
         this.specialization = specialization;
+    }
+
+    public Boolean getApproved() {
+        return approved;
+    }
+
+    public void setApproved(Boolean approved) {
+        this.approved = approved;
     }
 
     @Override
