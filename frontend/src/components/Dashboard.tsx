@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Button, ListGroup, Badge, Alert, Spinner, Row, Col, Modal } from 'react-bootstrap';
-import { appointmentAPI, scheduleAPI, notificationAPI, getUser } from '../services/api';
+import { Card, Button, Badge, Alert, Spinner, Row, Col, Container } from 'react-bootstrap';
+import { useNavigate } from 'react-router-dom';
+import { appointmentAPI, notificationAPI, getUser, removeAuthToken } from '../services/api';
 
 interface Appointment {
   appointmentId: number;
@@ -17,27 +18,14 @@ interface Appointment {
   updatedAt: string | null;
 }
 
-interface AvailableSlot {
-  scheduleId: number;
-  doctorId: number;
-  doctorName: string;
-  specialization: string;
-  startTime: string;
-  endTime: string;
-  isBooked: boolean;
-}
-
 const Dashboard: React.FC = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [availableSlots, setAvailableSlots] = useState<AvailableSlot[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [showBookingModal, setShowBookingModal] = useState(false);
-  const [selectedSlot, setSelectedSlot] = useState<AvailableSlot | null>(null);
-  const [bookingLoading, setBookingLoading] = useState(false);
-
+  
   const user = getUser();
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchDashboardData();
@@ -46,233 +34,218 @@ const Dashboard: React.FC = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const [appointmentsRes, notificationsRes] = await Promise.all([
-        appointmentAPI.getMyAppointments(),
-        notificationAPI.getMyNotifications(),
-      ]);
+      setError('');
+      
+      // Check if user is authenticated
+      const token = localStorage.getItem('token');
+      const currentUser = getUser();
+      
+      if (!token || !currentUser) {
+        setError('Authentication required. Please log in again.');
+        navigate('/login');
+        return;
+      }
+      
+      // Try to fetch both appointments and notifications separately
+      let appointmentsData: any[] = [];
+      let notificationsData: any[] = [];
+      let hasError = false;
+      let errorMessages: string[] = [];
 
-      setAppointments(appointmentsRes.data);
-      setNotifications(notificationsRes.data);
+      try {
+        const appointmentsRes = await appointmentAPI.getMyAppointments();
+        appointmentsData = appointmentsRes.data.sort((a: any, b: any) => 
+          new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+        );
+      } catch (err: any) {
+        hasError = true;
+        errorMessages.push('Appointments');
+        console.error('Failed to load appointments:', err);
+        
+        // Check if it's an authentication error
+        if (err.response?.status === 401 || err.response?.status === 403) {
+          setError('Session expired. Please log in again.');
+          removeAuthToken();
+          navigate('/login');
+          return;
+        }
+      }
+
+      try {
+        const notificationsRes = await notificationAPI.getMyNotifications();
+        notificationsData = notificationsRes.data;
+      } catch (err: any) {
+        hasError = true;
+        errorMessages.push('Notifications');
+        console.error('Failed to load notifications:', err);
+        
+        // Check if it's an authentication error
+        if (err.response?.status === 401 || err.response?.status === 403) {
+          setError('Session expired. Please log in again.');
+          removeAuthToken();
+          navigate('/login');
+          return;
+        }
+      }
+
+      // Set data even if partial
+      setAppointments(appointmentsData);
+      setNotifications(notificationsData);
+
+      // Show error only if both failed or if user has no data at all
+      if (hasError && appointmentsData.length === 0 && notificationsData.length === 0) {
+        setError(`Failed to load ${errorMessages.join(' and ')}. Please try refreshing the page.`);
+      } else if (hasError) {
+        setError(`Some data (${errorMessages.join(' and ')}) could not be loaded. Showing available data.`);
+      }
+
     } catch (err: any) {
-      setError('Failed to load dashboard data');
+      console.error('Dashboard data loading error:', err);
+      setError('Failed to load dashboard data. Please try refreshing the page.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleBookAppointment = async () => {
-    if (!selectedSlot) return;
+  const nextAppointment = appointments.find(a => 
+    new Date(a.startTime).getTime() > Date.now() && a.status === 'CONFIRMED'
+  );
 
-    setBookingLoading(true);
-    try {
-      await appointmentAPI.bookAppointment({
-        doctorId: selectedSlot.doctorId,
-        scheduleId: selectedSlot.scheduleId,
-      });
-
-      setShowBookingModal(false);
-      setSelectedSlot(null);
-      fetchDashboardData(); // Refresh data
-      alert('Appointment booked successfully!');
-    } catch (err: any) {
-      alert('Failed to book appointment: ' + err.response?.data?.message);
-    } finally {
-      setBookingLoading(false);
-    }
-  };
-
-  const handleCancelAppointment = async (appointmentId: number) => {
-    if (!window.confirm('Are you sure you want to cancel this appointment?')) return;
-
-    try {
-      await appointmentAPI.cancelAppointment(appointmentId);
-      fetchDashboardData(); // Refresh data
-      alert('Appointment cancelled successfully!');
-    } catch (err: any) {
-      alert('Failed to cancel appointment: ' + err.response?.data?.message);
-    }
-  };
-
-  const searchAvailableSlots = async (doctorId: number) => {
-    try {
-      const response = await scheduleAPI.getAvailableSlots(doctorId);
-      setAvailableSlots(response.data);
-      setShowBookingModal(true);
-    } catch (err: any) {
-      alert('Failed to load available slots');
-    }
-  };
-
-  const getStatusBadgeVariant = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'confirmed': return 'success';
-      case 'pending': return 'warning';
-      case 'completed': return 'info';
-      case 'canceled': return 'secondary';
-      case 'no_show': return 'danger';
-      default: return 'primary';
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="text-center">
-        <Spinner animation="border" />
-        <p>Loading dashboard...</p>
-      </div>
-    );
-  }
+  if (loading) return (
+    <div className="text-center p-5">
+      <Spinner animation="grow" variant="primary" />
+      <p className="mt-3 text-muted">Preparing your wellness overview...</p>
+    </div>
+  );
 
   return (
-    <div>
-      <h2>
-        {user?.role === 'DOCTOR'
-          ? `Welcome to your Doctor Dashboard, Dr. ${user?.name}`
-          : user?.role === 'ADMIN'
-          ? `Welcome to Admin Dashboard, ${user?.name}`
-          : `Welcome to your Dashboard, ${user?.name}`}
-      </h2>
+    <Container fluid className="py-4">
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h2 className="fw-bold mb-1">Hello, {user?.name}! 👋</h2>
+          <p className="text-muted">Welcome back to your healthcare portal.</p>
+        </div>
+      </div>
 
-      {error && <Alert variant="danger">{error}</Alert>}
+      {error && (
+        <Alert variant="danger" dismissible className="d-flex align-items-center justify-content-between">
+          <div>{error}</div>
+          <Button 
+            variant="outline-danger" 
+            size="sm" 
+            onClick={fetchDashboardData}
+            className="ms-3"
+          >
+            Retry
+          </Button>
+        </Alert>
+      )}
 
-      <Row>
-        <Col md={8}>
-          <Card className="mb-4">
-            <Card.Header>
-              <h4>My Appointments</h4>
-            </Card.Header>
-            <Card.Body>
-              {appointments.length === 0 ? (
-                <p>No appointments found.</p>
-              ) : (
-                <ListGroup variant="flush">
-                  {appointments.map((appointment) => (
-                    <ListGroup.Item key={appointment.appointmentId}>
-                      <Row>
-                        <Col md={8}>
-                          <strong>Dr. {appointment.doctorName}</strong> ({appointment.specialization})
-                          <br />
-                          <small>
-                            {new Date(appointment.startTime).toLocaleString()} - {new Date(appointment.endTime).toLocaleString()}
-                          </small>
-                        </Col>
-                        <Col md={2}>
-                          <Badge bg={getStatusBadgeVariant(appointment.status)}>
-                            {appointment.status}
-                          </Badge>
-                        </Col>
-                        <Col md={2}>
-                          {appointment.status === 'CONFIRMED' && (
-                            <Button
-                              variant="outline-danger"
-                              size="sm"
-                              onClick={() => handleCancelAppointment(appointment.appointmentId)}
-                            >
-                              Cancel
-                            </Button>
-                          )}
-                        </Col>
-                      </Row>
-                    </ListGroup.Item>
-                  ))}
-                </ListGroup>
-              )}
+      <Row className="g-4 mb-4">
+        <Col md={4}>
+          <Card className="border-0 shadow-sm rounded-4 bg-primary text-white p-3 h-100">
+            <Card.Body className="d-flex flex-column justify-content-between">
+              <div>
+                <span className="opacity-75 small fw-bold text-uppercase ls-1">TOTAL VISITS</span>
+                <h2 className="display-4 fw-bold mt-2 mb-0">{appointments.length}</h2>
+              </div>
+              <div className="mt-4 small opacity-75">Your complete medical journey history</div>
             </Card.Body>
           </Card>
         </Col>
-
-        <Col md={4}>
-          <Card className="mb-4">
-            <Card.Header>
-              <h4>Quick Actions</h4>
-            </Card.Header>
-            <Card.Body>
-              <Button
-                variant="primary"
-                className="w-100 mb-2"
-                onClick={() => searchAvailableSlots(1)} // For demo, using doctor ID 1
-              >
-                Book New Appointment
-              </Button>
-              <p className="text-muted small">Click to view available slots with doctors</p>
-            </Card.Body>
-          </Card>
-
-          <Card>
-            <Card.Header>
-              <h4>Recent Notifications</h4>
-            </Card.Header>
-            <Card.Body>
-              {notifications.length === 0 ? (
-                <p>No notifications.</p>
+        
+        <Col md={8}>
+          <Card className="border-0 shadow-sm rounded-4 h-100">
+            <Card.Body className="p-4 d-flex align-items-center">
+              {nextAppointment ? (
+                <div className="w-100">
+                   <div className="d-flex justify-content-between align-items-center mb-3">
+                     <span className="badge bg-success bg-opacity-10 text-success rounded-pill px-3 py-2">UPCOMING VISIT</span>
+                     <span className="text-muted small">{new Date(nextAppointment.startTime).toLocaleDateString()}</span>
+                   </div>
+                   <h4 className="fw-bold mb-2">Check-up with Dr. {nextAppointment.doctorName}</h4>
+                   <p className="text-muted mb-0">
+                     <span className="me-3">👨‍⚕️ {nextAppointment.specialization}</span>
+                     <span>🕒 {new Date(nextAppointment.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                   </p>
+                </div>
               ) : (
-                <ListGroup variant="flush">
-                  {notifications.slice(0, 5).map((notification) => (
-                    <ListGroup.Item key={notification.notificationId}>
-                      <small>{notification.message}</small>
-                      <br />
-                      <small className="text-muted">
-                        {new Date(notification.timestamp).toLocaleString()}
-                      </small>
-                    </ListGroup.Item>
-                  ))}
-                </ListGroup>
+                <div className="text-center w-100 py-4 opacity-50">
+                  <div className="display-4 mb-2">📅</div>
+                  <p className="mb-0">No upcoming appointments scheduled.</p>
+                </div>
               )}
             </Card.Body>
           </Card>
         </Col>
       </Row>
 
-      {/* Booking Modal */}
-      <Modal show={showBookingModal} onHide={() => setShowBookingModal(false)}>
-        <Modal.Header closeButton>
-          <Modal.Title>Available Appointment Slots</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {availableSlots.length === 0 ? (
-            <p>No available slots found.</p>
-          ) : (
-            <ListGroup>
-              {availableSlots.map((slot) => (
-                <ListGroup.Item key={slot.scheduleId}>
-                  <Row>
-                    <Col md={8}>
-                      <strong>Dr. {slot.doctorName}</strong> ({slot.specialization})
-                      <br />
-                      <small>
-                        {new Date(slot.startTime).toLocaleString()} - {new Date(slot.endTime).toLocaleString()}
-                      </small>
-                    </Col>
-                    <Col md={4}>
-                      <Button
-                        variant="success"
-                        size="sm"
-                        onClick={() => setSelectedSlot(slot)}
-                        disabled={selectedSlot?.scheduleId === slot.scheduleId}
-                      >
-                        {selectedSlot?.scheduleId === slot.scheduleId ? 'Selected' : 'Select'}
-                      </Button>
-                    </Col>
-                  </Row>
-                </ListGroup.Item>
-              ))}
-            </ListGroup>
-          )}
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowBookingModal(false)}>
-            Cancel
-          </Button>
-          <Button
-            variant="primary"
-            onClick={handleBookAppointment}
-            disabled={!selectedSlot || bookingLoading}
-          >
-            {bookingLoading ? <Spinner animation="border" size="sm" /> : 'Book Appointment'}
-          </Button>
-        </Modal.Footer>
-      </Modal>
-    </div>
+      <Row className="g-4 border-top pt-4">
+        <Col lg={7}>
+           <Card className="border-0 bg-transparent">
+             <div className="d-flex justify-content-between align-items-center mb-3">
+               <h5 className="fw-bold mb-0">Recent Activity</h5>
+               <Button variant="link" onClick={() => navigate('/my-appointments')} className="text-decoration-none p-0">View All →</Button>
+             </div>
+             <div className="bg-white rounded-4 shadow-sm overflow-hidden">
+               {appointments.length === 0 ? (
+                 <div className="p-5 text-center text-muted">
+                   <div className="display-4 mb-3"> calendar</div>
+                   <h5 className="mb-2">No appointments yet</h5>
+                   <p className="mb-3">Book your first appointment to get started with your healthcare journey.</p>
+                   <Button variant="primary" onClick={() => navigate('/book-appointment')}>
+                     Book Appointment
+                   </Button>
+                 </div>
+               ) : (
+                 <div className="list-group list-group-flush">
+                   {appointments.slice(0, 4).map(apt => (
+                     <div key={apt.appointmentId} className="list-group-item p-3 border-light border-bottom-0">
+                       <Row className="align-items-center">
+                         <Col className="flex-grow-1">
+                           <div className="fw-bold">{apt.doctorName}</div>
+                           <small className="text-muted">{new Date(apt.startTime).toLocaleDateString()}</small>
+                         </Col>
+                         <Col xs="auto">
+                           <Badge bg={apt.status === 'CONFIRMED' ? 'success' : 'secondary'} className="px-2 py-1">
+                             {apt.status}
+                           </Badge>
+                         </Col>
+                       </Row>
+                     </div>
+                   ))}
+                 </div>
+               )}
+             </div>
+           </Card>
+        </Col>
+
+        <Col lg={5}>
+          <Card className="border-0 bg-transparent">
+            <h5 className="fw-bold mb-3">Notifications</h5>
+            <div className="bg-white rounded-4 shadow-sm overflow-hidden">
+              {notifications.length === 0 ? (
+                <div className="p-5 text-center text-muted small">Stay tuned for updates here.</div>
+              ) : (
+                <div className="list-group list-group-flush">
+                  {notifications.slice(0, 5).map(note => (
+                    <div key={note.notificationId} className={`list-group-item p-3 border-light ${note.message.includes('confirmed') ? 'border-success border-2' : ''}`}>
+                      <div className="small mb-1">
+                        {note.message.includes('confirmed') && <span className="text-success me-1"> confirmed</span>}
+                        {note.message}
+                      </div>
+                      <div className="text-muted" style={{ fontSize: '10px' }}>
+                        {new Date(note.timestamp).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </Card>
+        </Col>
+      </Row>
+    </Container>
   );
 };
 

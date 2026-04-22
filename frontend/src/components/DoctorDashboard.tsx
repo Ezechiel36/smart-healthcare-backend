@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Button, ListGroup, Badge, Alert, Spinner, Row, Col, Modal, Form } from 'react-bootstrap';
-import { appointmentAPI, scheduleAPI, notificationAPI, getUser } from '../services/api';
+import { Card, Button, ListGroup, Badge, Alert, Spinner, Row, Col } from 'react-bootstrap';
+import { useNavigate } from 'react-router-dom';
+import { appointmentAPI, scheduleAPI, notificationAPI, getUser, removeAuthToken } from '../services/api';
 
 interface Appointment {
   appointmentId: number;
@@ -31,14 +32,7 @@ const DoctorDashboard: React.FC = () => {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [showAddScheduleModal, setShowAddScheduleModal] = useState(false);
-  const [newSchedule, setNewSchedule] = useState({
-    startTime: '',
-    endTime: '',
-  });
-  const [scheduleLoading, setScheduleLoading] = useState(false);
-
-  const user = getUser();
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchDashboardData();
@@ -47,6 +41,18 @@ const DoctorDashboard: React.FC = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
+      setError('');
+      
+      // Check if user is authenticated
+      const token = localStorage.getItem('token');
+      const currentUser = getUser();
+      
+      if (!token || !currentUser) {
+        setError('Authentication required. Please log in again.');
+        navigate('/login');
+        return;
+      }
+      
       const [appointmentsRes, schedulesRes, notificationsRes] = await Promise.all([
         appointmentAPI.getDoctorAppointments(),
         scheduleAPI.getMySchedules(),
@@ -57,30 +63,22 @@ const DoctorDashboard: React.FC = () => {
       setSchedules(schedulesRes.data);
       setNotifications(notificationsRes.data);
     } catch (err: any) {
-      setError('Failed to load dashboard data');
+      console.error('Doctor dashboard data loading error:', err);
+      
+      // Check if it's an authentication error
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        setError('Session expired. Please log in again.');
+        removeAuthToken();
+        navigate('/login');
+        return;
+      }
+      
+      setError('Failed to load dashboard data. Please try refreshing the page.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAddSchedule = async () => {
-    setScheduleLoading(true);
-    try {
-      await scheduleAPI.addAvailability({
-        startTime: new Date(newSchedule.startTime).toISOString(),
-        endTime: new Date(newSchedule.endTime).toISOString(),
-      });
-
-      setShowAddScheduleModal(false);
-      setNewSchedule({ startTime: '', endTime: '' });
-      fetchDashboardData(); // Refresh data
-      alert('Schedule added successfully!');
-    } catch (err: any) {
-      alert('Failed to add schedule: ' + err.response?.data?.message);
-    } finally {
-      setScheduleLoading(false);
-    }
-  };
 
   const handleDeleteSchedule = async (scheduleId: number) => {
     if (!window.confirm('Are you sure you want to delete this schedule?')) return;
@@ -126,15 +124,21 @@ const DoctorDashboard: React.FC = () => {
 
   return (
     <div>
-      <h2>
-        {user?.role === 'DOCTOR'
-          ? `Welcome to your Doctor Dashboard, Dr. ${user?.name}`
-          : user?.role === 'ADMIN'
-          ? `Welcome to Admin Dashboard, ${user?.name}`
-          : `Welcome to your Dashboard, ${user?.name}`}
-      </h2>
+      <h2>Doctor Dashboard</h2>
 
-      {error && <Alert variant="danger">{error}</Alert>}
+      {error && (
+        <Alert variant="danger" dismissible className="d-flex align-items-center justify-content-between">
+          <div>{error}</div>
+          <Button 
+            variant="outline-danger" 
+            size="sm" 
+            onClick={fetchDashboardData}
+            className="ms-3"
+          >
+            Retry
+          </Button>
+        </Alert>
+      )}
 
       <Row>
         <Col md={8}>
@@ -163,6 +167,18 @@ const DoctorDashboard: React.FC = () => {
                           </Badge>
                         </Col>
                         <Col md={3}>
+                          {appointment.status === 'PENDING' && (
+                            <div>
+                              <Button
+                                variant="outline-primary"
+                                size="sm"
+                                className="me-1"
+                                onClick={() => handleUpdateAppointmentStatus(appointment.appointmentId, 'CONFIRMED')}
+                              >
+                                Confirm
+                              </Button>
+                            </div>
+                          )}
                           {appointment.status === 'CONFIRMED' && (
                             <div>
                               <Button
@@ -198,13 +214,6 @@ const DoctorDashboard: React.FC = () => {
               <h4>Manage Availability</h4>
             </Card.Header>
             <Card.Body>
-              <Button
-                variant="primary"
-                className="w-100 mb-3"
-                onClick={() => setShowAddScheduleModal(true)}
-              >
-                Add New Schedule
-              </Button>
 
               <h6>My Schedules</h6>
               {schedules.length === 0 ? (
@@ -267,46 +276,6 @@ const DoctorDashboard: React.FC = () => {
         </Col>
       </Row>
 
-      {/* Add Schedule Modal */}
-      <Modal show={showAddScheduleModal} onHide={() => setShowAddScheduleModal(false)}>
-        <Modal.Header closeButton>
-          <Modal.Title>Add New Schedule</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form>
-            <Form.Group className="mb-3">
-              <Form.Label>Start Time</Form.Label>
-              <Form.Control
-                type="datetime-local"
-                value={newSchedule.startTime}
-                onChange={(e) => setNewSchedule({ ...newSchedule, startTime: e.target.value })}
-                required
-              />
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>End Time</Form.Label>
-              <Form.Control
-                type="datetime-local"
-                value={newSchedule.endTime}
-                onChange={(e) => setNewSchedule({ ...newSchedule, endTime: e.target.value })}
-                required
-              />
-            </Form.Group>
-          </Form>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowAddScheduleModal(false)}>
-            Cancel
-          </Button>
-          <Button
-            variant="primary"
-            onClick={handleAddSchedule}
-            disabled={scheduleLoading || !newSchedule.startTime || !newSchedule.endTime}
-          >
-            {scheduleLoading ? <Spinner animation="border" size="sm" /> : 'Add Schedule'}
-          </Button>
-        </Modal.Footer>
-      </Modal>
     </div>
   );
 };

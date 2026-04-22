@@ -111,7 +111,6 @@ const Register: React.FC = () => {
               <Form.Select name="role" value={formData.role} onChange={handleChange} required>
                 <option value="PATIENT">Patient</option>
                 <option value="DOCTOR">Doctor</option>
-                <option value="ADMIN">Admin</option>
               </Form.Select>
             </Form.Group>
 

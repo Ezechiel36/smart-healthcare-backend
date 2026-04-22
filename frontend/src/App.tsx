@@ -11,7 +11,15 @@ import Dashboard from './components/Dashboard';
 import DoctorDashboard from './components/DoctorDashboard';
 import AdminDashboard from './components/AdminDashboard';
 import Navigation from './components/Navigation';
+import Sidebar from './components/Sidebar';
 import About from './pages/About';
+import SystemAnalytics from './components/SystemAnalytics';
+import MyAppointments from './components/MyAppointments';
+import ManageSchedule from './components/ManageSchedule';
+import PatientAppointments from './components/PatientAppointments';
+import UserManagement from './components/UserManagement';
+import DoctorApproval from './components/DoctorApproval';
+import BookAppointment from './components/BookAppointment';
 
 // Auth guard component
 const PrivateRoute = ({ children, allowedRoles }: { children: React.ReactNode; allowedRoles?: string[] }) => {
@@ -29,7 +37,7 @@ const PrivateRoute = ({ children, allowedRoles }: { children: React.ReactNode; a
   return <>{children}</>;
 };
 
-// Layout component that conditionally renders header
+// Layout component that conditionally renders header and sidebar
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   const showHeader = !['/', '/login', '/register'].includes(location.pathname);
@@ -38,9 +46,18 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   return (
     <div className={`App ${isAuthPage ? 'auth-background' : ''}`}>
       {showHeader && <Navigation />}
-      <Container className={showHeader ? 'mt-4' : ''}>
-        {children}
-      </Container>
+      {showHeader ? (
+        <div className="d-flex" style={{ minHeight: "calc(100vh - 76px)" }}>
+          <Sidebar />
+          <Container fluid className="p-4" style={{ flex: 1, backgroundColor: "#f8f9fa" }}>
+            {children}
+          </Container>
+        </div>
+      ) : (
+        <Container className={isAuthPage ? '' : 'mt-4'}>
+          {children}
+        </Container>
+      )}
     </div>
   );
 };
@@ -50,8 +67,8 @@ function App() {
 
   return (
     <Router>
-      <Layout>
-        <Routes>
+        <Layout>
+          <Routes>
           <Route path="/" element={<Navigate to="/login" />} />
           <Route path="/about" element={<About />} />
           <Route path="/login" element={<Login />} />
@@ -81,9 +98,21 @@ function App() {
               </PrivateRoute>
             }
           />
-        </Routes>
-      </Layout>
-    </Router>
+          {/* Patient Routes */}
+          <Route path="/book-appointment" element={<PrivateRoute allowedRoles={['PATIENT']}><BookAppointment /></PrivateRoute>} />
+          <Route path="/my-appointments" element={<PrivateRoute allowedRoles={['PATIENT']}><MyAppointments /></PrivateRoute>} />
+          
+          {/* Doctor Routes */}
+          <Route path="/manage-schedule" element={<PrivateRoute allowedRoles={['DOCTOR']}><ManageSchedule /></PrivateRoute>} />
+          <Route path="/patient-appointments" element={<PrivateRoute allowedRoles={['DOCTOR']}><PatientAppointments /></PrivateRoute>} />
+
+          {/* Admin Routes */}
+          <Route path="/system-analytics" element={<PrivateRoute allowedRoles={['ADMIN']}><SystemAnalytics /></PrivateRoute>} />
+          <Route path="/user-management" element={<PrivateRoute allowedRoles={['ADMIN']}><UserManagement /></PrivateRoute>} />
+          <Route path="/doctor-approval" element={<PrivateRoute allowedRoles={['ADMIN']}><DoctorApproval /></PrivateRoute>} />
+          </Routes>
+        </Layout>
+      </Router>
   );
 }
 

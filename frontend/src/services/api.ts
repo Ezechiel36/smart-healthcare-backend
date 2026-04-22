@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Base URL for the backend API
-const API_BASE_URL = 'http://localhost:8080/api';
+const API_BASE_URL = 'http://localhost:8081/api';
 
 // Create axios instance with default config
 const api = axios.create({
@@ -50,6 +50,8 @@ export const authAPI = {
 export const scheduleAPI = {
   addAvailability: (availability: { startTime: string; endTime: string }) =>
     api.post('/schedules/availability', availability),
+  updateAvailability: (scheduleId: number, availability: { startTime: string; endTime: string }) =>
+    api.put(`/schedules/${scheduleId}`, availability),
   getAvailableSlots: (doctorId: number) => api.get(`/schedules/doctors/${doctorId}/available`),
   getMySchedules: () => api.get('/schedules/my-schedules'),
   deleteSchedule: (scheduleId: number) => api.delete(`/schedules/${scheduleId}`),
@@ -72,9 +74,20 @@ export const notificationAPI = {
   getNotificationCount: () => api.get('/notifications/count'),
 };
 
+// Doctor APIs
+export const doctorAPI = {
+  getAllDoctors: () => api.get('/doctors'),
+  getDoctorById: (id: number) => api.get(`/doctors/${id}`),
+};
+
 // Admin APIs
 export const adminAPI = {
   getDashboard: () => api.get('/admin/dashboard'),
+  getUsers: () => api.get('/admin/users'),
+  deleteUser: (id: number) => api.delete(`/admin/users/${id}`),
+  getPendingDoctors: () => api.get('/admin/doctors/pending'),
+  updateDoctorApproval: (id: number, approved: boolean) => 
+    api.put(`/admin/doctors/${id}/approval`, { approved }),
 };
 
 // Utility functions

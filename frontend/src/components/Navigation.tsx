@@ -12,11 +12,13 @@ const Navigation: React.FC = () => {
   useEffect(() => {
     const currentUser = getUser();
     setUser(currentUser);
+  }, []);
 
-    if (currentUser) {
+  useEffect(() => {
+    if (user) {
       fetchNotificationCount();
     }
-  }, []);
+  }, [user]);
 
   const fetchNotificationCount = async () => {
     try {
@@ -27,10 +29,10 @@ const Navigation: React.FC = () => {
     }
   };
 
+
   const handleLogout = () => {
     removeAuthToken();
     setUser(null);
-    setNotificationCount(0);
     navigate('/login');
   };
 
@@ -48,41 +50,25 @@ const Navigation: React.FC = () => {
                 <Nav.Link>About</Nav.Link>
               </LinkContainer>
             )}
-            {user && (
-              <LinkContainer to={
-                user.role === 'ADMIN' ? '/admin-dashboard' :
-                user.role === 'DOCTOR' ? '/doctor-dashboard' :
-                '/dashboard'
-              }>
-                <Nav.Link>Dashboard</Nav.Link>
-              </LinkContainer>
-            )}
+            {/* The role-specific links have been moved to Sidebar.tsx */}
           </Nav>
-          <Nav>
-            {user ? (
-              <>
-                <Navbar.Text className="me-3">
-                  Welcome, {user.name} ({user.role})
-                  {notificationCount > 0 && (
-                    <Badge bg="danger" className="ms-2">
-                      {notificationCount}
-                    </Badge>
-                  )}
-                </Navbar.Text>
+          <Nav className="align-items-center">
+                        <div className="ms-2">
+              {user ? (
                 <Button variant="outline-light" onClick={handleLogout}>
                   Logout
                 </Button>
-              </>
-            ) : (
-              <>
-                <LinkContainer to="/login">
-                  <Nav.Link>Login</Nav.Link>
-                </LinkContainer>
-                <LinkContainer to="/register">
-                  <Nav.Link>Register</Nav.Link>
-                </LinkContainer>
-              </>
-            )}
+              ) : (
+                <>
+                  <LinkContainer to="/login">
+                    <Nav.Link>Login</Nav.Link>
+                  </LinkContainer>
+                  <LinkContainer to="/register">
+                    <Nav.Link>Register</Nav.Link>
+                  </LinkContainer>
+                </>
+              )}
+            </div>
           </Nav>
         </Navbar.Collapse>
       </Container>

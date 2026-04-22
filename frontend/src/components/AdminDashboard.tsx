@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Alert, Spinner, Row, Col, ListGroup } from 'react-bootstrap';
-import { adminAPI, notificationAPI, getUser } from '../services/api';
+import { Card, Alert, Button } from 'react-bootstrap';
+import { adminAPI, getUser, removeAuthToken } from '../services/api';
+import { useNavigate } from 'react-router-dom';
+import './AdminDashboard.css';
 
 interface DashboardData {
   totalPatients: number;
@@ -17,9 +19,9 @@ interface DashboardData {
 
 const AdminDashboard: React.FC = () => {
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
-  const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const navigate = useNavigate();
 
   const user = getUser();
 
@@ -30,15 +32,32 @@ const AdminDashboard: React.FC = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const [dashboardRes, notificationsRes] = await Promise.all([
-        adminAPI.getDashboard(),
-        notificationAPI.getMyNotifications(),
-      ]);
-
+      setError('');
+      
+      // Check if user is authenticated
+      const token = localStorage.getItem('token');
+      const currentUser = getUser();
+      
+      if (!token || !currentUser) {
+        setError('Authentication required. Please log in again.');
+        navigate('/login');
+        return;
+      }
+      
+      const dashboardRes = await adminAPI.getDashboard();
       setDashboardData(dashboardRes.data);
-      setNotifications(notificationsRes.data);
     } catch (err: any) {
-      setError('Failed to load dashboard data');
+      console.error('Admin dashboard data loading error:', err);
+      
+      // Check if it's an authentication error
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        setError('Session expired. Please log in again.');
+        removeAuthToken();
+        navigate('/login');
+        return;
+      }
+      
+      setError('Failed to load dashboard data. Please try refreshing the page.');
     } finally {
       setLoading(false);
     }
@@ -46,127 +65,116 @@ const AdminDashboard: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="text-center">
-        <Spinner animation="border" />
-        <p>Loading dashboard...</p>
+      <div className="loading-container">
+        <div className="loading-spinner"></div>
+        <div className="loading-text">Loading dashboard...</div>
       </div>
     );
   }
 
   return (
-    <div>
-      <h2>
-        {user?.role === 'DOCTOR'
-          ? `Welcome to your Doctor Dashboard, Dr. ${user?.name}`
-          : user?.role === 'ADMIN'
-          ? `Welcome to Admin Dashboard, ${user?.name}`
-          : `Welcome to your Dashboard, ${user?.name}`}
-      </h2>
+    <div className="dashboard-container">
+      <div className="dashboard-content">
+        <div className="dashboard-header">
+          <h1 className="dashboard-title">
+            {user?.role === 'DOCTOR'
+              ? `Welcome to your Doctor Dashboard, Dr. ${user?.name}`
+              : user?.role === 'ADMIN'
+              ? `Welcome to Admin Dashboard, ${user?.name}`
+              : `Welcome to your Dashboard, ${user?.name}`}
+          </h1>
+        </div>
 
-      {error && <Alert variant="danger">{error}</Alert>}
+        {error && (
+          <Alert variant="danger" dismissible className="d-flex align-items-center justify-content-between">
+            <div>{error}</div>
+            <Button 
+              variant="outline-danger" 
+              size="sm" 
+              onClick={fetchDashboardData}
+              className="ms-3"
+            >
+              Retry
+            </Button>
+          </Alert>
+        )}
 
-      <Row>
-        <Col md={8}>
-          {dashboardData && (
-            <>
-              <Row className="mb-4">
-                <Col md={3}>
-                  <Card className="text-center">
-                    <Card.Body>
-                      <h3 className="text-primary">{dashboardData.totalPatients}</h3>
-                      <p>Total Patients</p>
-                    </Card.Body>
-                  </Card>
-                </Col>
-                <Col md={3}>
-                  <Card className="text-center">
-                    <Card.Body>
-                      <h3 className="text-success">{dashboardData.totalDoctors}</h3>
-                      <p>Total Doctors</p>
-                    </Card.Body>
-                  </Card>
-                </Col>
-                <Col md={3}>
-                  <Card className="text-center">
-                    <Card.Body>
-                      <h3 className="text-info">{dashboardData.totalAppointments}</h3>
-                      <p>Total Appointments</p>
-                    </Card.Body>
-                  </Card>
-                </Col>
-                <Col md={3}>
-                  <Card className="text-center">
-                    <Card.Body>
-                      <h3 className="text-warning">
-                        {Object.values(dashboardData.appointmentStatusBreakdown).reduce((a, b) => a + b, 0)}
-                      </h3>
-                      <p>Active Appointments</p>
-                    </Card.Body>
-                  </Card>
-                </Col>
-              </Row>
-
-              <Card className="mb-4">
-                <Card.Header>
-                  <h4>Appointment Status Breakdown</h4>
-                </Card.Header>
+        {dashboardData && (
+          <>
+            <div className="stats-grid">
+              <Card className="stat-card patients">
                 <Card.Body>
-                  <Row>
-                    <Col md={6}>
-                      <ListGroup variant="flush">
-                        <ListGroup.Item>
-                          <strong>Pending:</strong> {dashboardData.appointmentStatusBreakdown.pending}
-                        </ListGroup.Item>
-                        <ListGroup.Item>
-                          <strong>Confirmed:</strong> {dashboardData.appointmentStatusBreakdown.confirmed}
-                        </ListGroup.Item>
-                        <ListGroup.Item>
-                          <strong>Completed:</strong> {dashboardData.appointmentStatusBreakdown.completed}
-                        </ListGroup.Item>
-                      </ListGroup>
-                    </Col>
-                    <Col md={6}>
-                      <ListGroup variant="flush">
-                        <ListGroup.Item>
-                          <strong>Canceled:</strong> {dashboardData.appointmentStatusBreakdown.canceled}
-                        </ListGroup.Item>
-                        <ListGroup.Item>
-                          <strong>No Show:</strong> {dashboardData.appointmentStatusBreakdown.noShow}
-                        </ListGroup.Item>
-                      </ListGroup>
-                    </Col>
-                  </Row>
+                  <div className="stat-icon">
+                    👥
+                  </div>
+                  <div className="stat-number">{dashboardData.totalPatients}</div>
+                  <div className="stat-label">Total Patients</div>
                 </Card.Body>
               </Card>
-            </>
-          )}
-        </Col>
 
-        <Col md={4}>
-          <Card>
-            <Card.Header>
-              <h4>Recent Notifications</h4>
-            </Card.Header>
-            <Card.Body>
-              {notifications.length === 0 ? (
-                <p>No notifications.</p>
-              ) : (
-                <ListGroup variant="flush">
-                  {notifications.slice(0, 10).map((notification) => (
-                    <ListGroup.Item key={notification.notificationId}>
-                      <small>{notification.message}</small>
-                      <br />
-                      <small className="text-muted">
-                        {new Date(notification.timestamp).toLocaleString()}
-                      </small>
-                    </ListGroup.Item>
-                  ))}
-                </ListGroup>
-              )}
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
+              <Card className="stat-card doctors">
+                <Card.Body>
+                  <div className="stat-icon">
+                    🩺
+                  </div>
+                  <div className="stat-number">{dashboardData.totalDoctors}</div>
+                  <div className="stat-label">Total Doctors</div>
+                </Card.Body>
+              </Card>
+
+              <Card className="stat-card appointments">
+                <Card.Body>
+                  <div className="stat-icon">
+                    📅
+                  </div>
+                  <div className="stat-number">{dashboardData.totalAppointments}</div>
+                  <div className="stat-label">Total Appointments</div>
+                </Card.Body>
+              </Card>
+
+              <Card className="stat-card active">
+                <Card.Body>
+                  <div className="stat-icon">
+                    ⚡
+                  </div>
+                  <div className="stat-number">
+                    {Object.values(dashboardData.appointmentStatusBreakdown).reduce((a, b) => a + b, 0)}
+                  </div>
+                  <div className="stat-label">Active Appointments</div>
+                </Card.Body>
+              </Card>
+            </div>
+
+            <Card className="status-card">
+              <Card.Body>
+                <h3 className="status-header">Appointment Status Breakdown</h3>
+                <div className="status-grid">
+                  <div className="status-item pending">
+                    <div className="status-label">Pending</div>
+                    <div className="status-count">{dashboardData.appointmentStatusBreakdown.pending}</div>
+                  </div>
+                  <div className="status-item confirmed">
+                    <div className="status-label">Confirmed</div>
+                    <div className="status-count">{dashboardData.appointmentStatusBreakdown.confirmed}</div>
+                  </div>
+                  <div className="status-item completed">
+                    <div className="status-label">Completed</div>
+                    <div className="status-count">{dashboardData.appointmentStatusBreakdown.completed}</div>
+                  </div>
+                  <div className="status-item canceled">
+                    <div className="status-label">Canceled</div>
+                    <div className="status-count">{dashboardData.appointmentStatusBreakdown.canceled}</div>
+                  </div>
+                  <div className="status-item no-show">
+                    <div className="status-label">No Show</div>
+                    <div className="status-count">{dashboardData.appointmentStatusBreakdown.noShow}</div>
+                  </div>
+                </div>
+              </Card.Body>
+            </Card>
+          </>
+        )}
+      </div>
     </div>
   );
 };
