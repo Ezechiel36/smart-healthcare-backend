@@ -8,7 +8,7 @@ COPY backend/mvnw ./
 COPY backend/.mvn .mvn
 COPY backend/src ./src
 
-RUN ./mvnw clean package -DskipTests
+RUN chmod +x mvnw && ./mvnw clean package -DskipTests
 
 # Runtime stage
 FROM eclipse-temurin:17-jre-alpine
