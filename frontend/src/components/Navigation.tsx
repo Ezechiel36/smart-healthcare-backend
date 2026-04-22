@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Navbar, Nav, Container, Button, Badge } from 'react-bootstrap';
+import { Navbar, Nav, Container, Button } from 'react-bootstrap';
 import { LinkContainer } from 'react-router-bootstrap';
 import { useNavigate } from 'react-router-dom';
-import { getUser, removeAuthToken, notificationAPI } from '../services/api';
+import { getUser, removeAuthToken } from '../services/api';
 
 const Navigation: React.FC = () => {
   const [user, setUser] = useState<any>(null);
-  const [notificationCount, setNotificationCount] = useState(0);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -14,20 +13,6 @@ const Navigation: React.FC = () => {
     setUser(currentUser);
   }, []);
 
-  useEffect(() => {
-    if (user) {
-      fetchNotificationCount();
-    }
-  }, [user]);
-
-  const fetchNotificationCount = async () => {
-    try {
-      const response = await notificationAPI.getNotificationCount();
-      setNotificationCount(response.data);
-    } catch (error) {
-      console.error('Failed to fetch notification count:', error);
-    }
-  };
 
 
   const handleLogout = () => {
@@ -37,7 +22,7 @@ const Navigation: React.FC = () => {
   };
 
   return (
-    <Navbar bg="primary" variant="dark" expand="lg" className="mb-4">
+    <Navbar expand="lg" className="mb-4">
       <Container>
         <LinkContainer to="/">
           <Navbar.Brand>Smart Healthcare</Navbar.Brand>
@@ -53,7 +38,7 @@ const Navigation: React.FC = () => {
             {/* The role-specific links have been moved to Sidebar.tsx */}
           </Nav>
           <Nav className="align-items-center">
-                        <div className="ms-2">
+            <div className="ms-2">
               {user ? (
                 <Button variant="outline-light" onClick={handleLogout}>
                   Logout

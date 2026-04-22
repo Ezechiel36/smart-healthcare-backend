@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, Button, ListGroup, Badge, Alert, Spinner, Row, Col } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { appointmentAPI, scheduleAPI, notificationAPI, getUser, removeAuthToken } from '../services/api';
@@ -34,11 +34,7 @@ const DoctorDashboard: React.FC = () => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
-
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
@@ -77,8 +73,11 @@ const DoctorDashboard: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [navigate]);
 
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
 
   const handleDeleteSchedule = async (scheduleId: number) => {
     if (!window.confirm('Are you sure you want to delete this schedule?')) return;

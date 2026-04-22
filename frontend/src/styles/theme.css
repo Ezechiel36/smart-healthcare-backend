@@ -1,0 +1,101 @@
+/* Static theme styles - no dark/light mode */
+body {
+  background-color: #ffffff;
+  color: #212529;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.card {
+  background-color: #ffffff !important;
+  border-color: #dee2e6 !important;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
+  transition: all 0.3s ease;
+}
+
+.navbar {
+  background-color: #2962FF !important;
+  border-bottom-color: #dee2e6 !important;
+  transition: all 0.3s ease;
+}
+
+.btn {
+  transition: all 0.3s ease;
+}
+
+.btn-outline-light {
+  border-color: #6c757d !important;
+  color: #6c757d !important;
+}
+
+.btn-outline-light:hover {
+  background-color: #6c757d !important;
+  color: #ffffff !important;
+}
+
+.alert {
+  border-color: #dee2e6 !important;
+  transition: all 0.3s ease;
+}
+
+.form-control {
+  background-color: #ffffff !important;
+  border-color: #dee2e6 !important;
+  color: #212529 !important;
+  transition: all 0.3s ease;
+}
+
+.form-control:focus {
+  background-color: #ffffff !important;
+  border-color: #007bff !important;
+  color: #212529 !important;
+}
+
+.modal-content {
+  background-color: #ffffff !important;
+  border-color: #dee2e6 !important;
+}
+
+.modal-header {
+  background-color: #f8f9fa !important;
+  border-bottom-color: #dee2e6 !important;
+}
+
+.modal-footer {
+  background-color: #f8f9fa !important;
+  border-top-color: #dee2e6 !important;
+}
+
+.dropdown-menu {
+  background-color: #ffffff !important;
+  border-color: #dee2e6 !important;
+}
+
+.dropdown-item {
+  color: #212529 !important;
+  transition: all 0.3s ease;
+}
+
+.dropdown-item:hover {
+  background-color: #f8f9fa !important;
+  color: #212529 !important;
+}
+
+.list-group-item {
+  background-color: #ffffff !important;
+  border-color: #e9ecef !important;
+  color: #212529 !important;
+  transition: all 0.3s ease;
+}
+
+.list-group-item:hover {
+  background-color: #f8f9fa !important;
+}
+
+.badge {
+  transition: all 0.3s ease;
+}
+
+/* Smooth transitions */
+* {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}

@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import { Container } from 'react-bootstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
+import './styles/theme.css';
 
 // Components
 import Login from './components/Login';
@@ -67,49 +68,49 @@ function App() {
 
   return (
     <Router>
-        <Layout>
-          <Routes>
-          <Route path="/" element={<Navigate to="/login" />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route
-            path="/dashboard"
-            element={
-              <PrivateRoute>
-                {user?.role === 'DOCTOR' ? <DoctorDashboard /> :
-                 user?.role === 'ADMIN' ? <AdminDashboard /> : <Dashboard />}
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/doctor-dashboard"
-            element={
-              <PrivateRoute allowedRoles={['DOCTOR']}>
-                <DoctorDashboard />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/admin-dashboard"
-            element={
-              <PrivateRoute allowedRoles={['ADMIN']}>
-                <AdminDashboard />
-              </PrivateRoute>
-            }
-          />
-          {/* Patient Routes */}
-          <Route path="/book-appointment" element={<PrivateRoute allowedRoles={['PATIENT']}><BookAppointment /></PrivateRoute>} />
-          <Route path="/my-appointments" element={<PrivateRoute allowedRoles={['PATIENT']}><MyAppointments /></PrivateRoute>} />
-          
-          {/* Doctor Routes */}
-          <Route path="/manage-schedule" element={<PrivateRoute allowedRoles={['DOCTOR']}><ManageSchedule /></PrivateRoute>} />
-          <Route path="/patient-appointments" element={<PrivateRoute allowedRoles={['DOCTOR']}><PatientAppointments /></PrivateRoute>} />
+      <Layout>
+        <Routes>
+            <Route path="/" element={<Navigate to="/login" />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route
+              path="/dashboard"
+              element={
+                <PrivateRoute>
+                  {user?.role === 'DOCTOR' ? <DoctorDashboard /> :
+                   user?.role === 'ADMIN' ? <AdminDashboard /> : <Dashboard />}
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/doctor-dashboard"
+              element={
+                <PrivateRoute allowedRoles={['DOCTOR']}>
+                  <DoctorDashboard />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin-dashboard"
+              element={
+                <PrivateRoute allowedRoles={['ADMIN']}>
+                  <AdminDashboard />
+                </PrivateRoute>
+              }
+            />
+            {/* Patient Routes */}
+            <Route path="/book-appointment" element={<PrivateRoute allowedRoles={['PATIENT']}><BookAppointment /></PrivateRoute>} />
+            <Route path="/my-appointments" element={<PrivateRoute allowedRoles={['PATIENT']}><MyAppointments /></PrivateRoute>} />
+            
+            {/* Doctor Routes */}
+            <Route path="/manage-schedule" element={<PrivateRoute allowedRoles={['DOCTOR']}><ManageSchedule /></PrivateRoute>} />
+            <Route path="/patient-appointments" element={<PrivateRoute allowedRoles={['DOCTOR']}><PatientAppointments /></PrivateRoute>} />
 
-          {/* Admin Routes */}
-          <Route path="/system-analytics" element={<PrivateRoute allowedRoles={['ADMIN']}><SystemAnalytics /></PrivateRoute>} />
-          <Route path="/user-management" element={<PrivateRoute allowedRoles={['ADMIN']}><UserManagement /></PrivateRoute>} />
-          <Route path="/doctor-approval" element={<PrivateRoute allowedRoles={['ADMIN']}><DoctorApproval /></PrivateRoute>} />
+            {/* Admin Routes */}
+            <Route path="/system-analytics" element={<PrivateRoute allowedRoles={['ADMIN']}><SystemAnalytics /></PrivateRoute>} />
+            <Route path="/user-management" element={<PrivateRoute allowedRoles={['ADMIN']}><UserManagement /></PrivateRoute>} />
+            <Route path="/doctor-approval" element={<PrivateRoute allowedRoles={['ADMIN']}><DoctorApproval /></PrivateRoute>} />
           </Routes>
         </Layout>
       </Router>

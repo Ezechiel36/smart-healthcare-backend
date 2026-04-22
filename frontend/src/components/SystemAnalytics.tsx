@@ -18,16 +18,14 @@ const SystemAnalytics: React.FC = () => {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-
+  
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
       const res = await adminAPI.getDashboard();
       setData(res.data);
-      setLastUpdated(new Date());
-    } catch (err: any) {
+          } catch (err: any) {
       setError('Failed to load analytics data. Please try again.');
     } finally {
       setLoading(false);
@@ -121,11 +119,6 @@ const SystemAnalytics: React.FC = () => {
           </p>
         </div>
         <div style={styles.headerRight}>
-          {lastUpdated && (
-            <span style={styles.lastUpdated}>
-              Last updated: {lastUpdated.toLocaleTimeString()}
-            </span>
-          )}
         </div>
       </div>
 
