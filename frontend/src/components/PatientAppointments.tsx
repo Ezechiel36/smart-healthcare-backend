@@ -60,9 +60,10 @@ const PatientAppointments: React.FC = () => {
     switch (status.toUpperCase()) {
       case 'CONFIRMED': return 'success';
       case 'PENDING': return 'warning';
+      case 'REJECTED': return 'danger';
       case 'COMPLETED': return 'info';
       case 'CANCELED': return 'secondary';
-      case 'NO_SHOW': return 'danger';
+      case 'NO_SHOW': return 'dark';
       default: return 'primary';
     }
   };
@@ -113,14 +114,23 @@ const PatientAppointments: React.FC = () => {
                       <td className="px-4 py-3 text-end">
                         {apt.status?.toUpperCase() === 'PENDING' && (
                           <>
-                            <Button 
-                              variant="primary" 
-                              size="sm" 
+                            <Button
+                              variant="success"
+                              size="sm"
                               className="me-2"
                               disabled={actionLoadingId === apt.appointmentId}
                               onClick={() => handleUpdateStatus(apt.appointmentId, 'CONFIRMED')}
                             >
-                              Confirm
+                              Approve
+                            </Button>
+                            <Button
+                              variant="danger"
+                              size="sm"
+                              className="me-2"
+                              disabled={actionLoadingId === apt.appointmentId}
+                              onClick={() => handleUpdateStatus(apt.appointmentId, 'REJECTED')}
+                            >
+                              Reject
                             </Button>
                           </>
                         )}

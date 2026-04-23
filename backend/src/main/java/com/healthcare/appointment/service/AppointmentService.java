@@ -72,8 +72,8 @@ public class AppointmentService {
             throw new DoubleBookingException("This time slot is already booked");
         }
 
-        // Create the appointment
-        Appointment appointment = new Appointment(patient, doctor, schedule, AppointmentStatus.CONFIRMED);
+        // Create the appointment with PENDING status
+        Appointment appointment = new Appointment(patient, doctor, schedule, AppointmentStatus.PENDING);
         Appointment savedAppointment = appointmentRepository.save(appointment);
 
         // Mark the schedule as booked
@@ -202,7 +202,7 @@ public class AppointmentService {
 
     /**
      * Update appointment status (Doctor only)
-     * Allows doctor to mark appointment as COMPLETED or NO_SHOW
+     * Allows doctor to approve (CONFIRMED), reject (REJECTED), complete (COMPLETED), or mark NO_SHOW
      *
      * @param appointmentId Appointment ID
      * @param doctorId Doctor ID (for authorization)
@@ -221,8 +221,16 @@ public class AppointmentService {
 
         // Validate the new status
         AppointmentStatus newStatus = request.getStatus();
-        if (newStatus != AppointmentStatus.COMPLETED && newStatus != AppointmentStatus.NO_SHOW) {
-            throw new IllegalArgumentException("Invalid status. Doctor can only set status to COMPLETED or NO_SHOW");
+        if (newStatus != AppointmentStatus.CONFIRMED && newStatus != AppointmentStatus.REJECTED &&
+            newStatus != AppointmentStatus.COMPLETED && newStatus != AppointmentStatus.NO_SHOW) {
+            throw new IllegalArgumentException("Invalid status. Doctor can only set status to CONFIRMED, REJECTED, COMPLETED, or NO_SHOW");
+        }
+
+        // Handle rejected appointments - make schedule available again
+        if (newStatus == AppointmentStatus.REJECTED) {
+            Schedule schedule = appointment.getSchedule();
+            schedule.setIsBooked(false);
+            scheduleRepository.save(schedule);
         }
 
         // Update the status
