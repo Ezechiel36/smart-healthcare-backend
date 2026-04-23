@@ -140,31 +140,30 @@ public class AppointmentService {
      */
     @Transactional(readOnly = true)
     public List<AppointmentResponse> getPatientAppointments(Long patientId) {
-        // Validate that patient exists
-        Patient patient = patientRepository.findById(patientId)
-                .orElseThrow(() -> new ResourceNotFoundException("Patient not found with ID: " + patientId));
-
-        List<Appointment> appointments = appointmentRepository.findByPatient_PatientIdOrderByCreatedAtDesc(patientId);
-
-        return appointments.stream()
-                .filter(appointment -> appointment.getDoctor() != null)
-                .filter(appointment -> appointment.getDoctor().getUser() != null)
-                .filter(appointment -> appointment.getSchedule() != null)
-                .map(appointment -> new AppointmentResponse(
-                        appointment.getAppointmentId(),
-                        patient.getPatientId(),
-                        patient.getUser() != null ? patient.getUser().getName() : null,
-                        appointment.getDoctor().getDoctorId(),
-                        appointment.getDoctor().getUser().getName(),
-                        appointment.getDoctor().getSpecialization(),
-                        appointment.getSchedule().getScheduleId(),
-                        appointment.getSchedule().getStartTime(),
-                        appointment.getSchedule().getEndTime(),
-                        appointment.getStatus(),
-                        appointment.getCreatedAt(),
-                        appointment.getUpdatedAt()
-                ))
-                .collect(Collectors.toList());
+        return patientRepository.findById(patientId)
+                .map(patient -> {
+                    List<Appointment> appointments = appointmentRepository.findByPatient_PatientIdOrderByCreatedAtDesc(patientId);
+                    return appointments.stream()
+                            .filter(appointment -> appointment.getDoctor() != null)
+                            .filter(appointment -> appointment.getDoctor().getUser() != null)
+                            .filter(appointment -> appointment.getSchedule() != null)
+                            .map(appointment -> new AppointmentResponse(
+                                    appointment.getAppointmentId(),
+                                    patient.getPatientId(),
+                                    patient.getUser() != null ? patient.getUser().getName() : "Unknown",
+                                    appointment.getDoctor().getDoctorId(),
+                                    appointment.getDoctor().getUser().getName(),
+                                    appointment.getDoctor().getSpecialization(),
+                                    appointment.getSchedule().getScheduleId(),
+                                    appointment.getSchedule().getStartTime(),
+                                    appointment.getSchedule().getEndTime(),
+                                    appointment.getStatus(),
+                                    appointment.getCreatedAt(),
+                                    appointment.getUpdatedAt()
+                            ))
+                            .collect(Collectors.toList());
+                })
+                .orElse(List.of());
     }
 
     /**
@@ -175,31 +174,30 @@ public class AppointmentService {
      */
     @Transactional(readOnly = true)
     public List<AppointmentResponse> getDoctorAppointments(Long doctorId) {
-        // Validate that doctor exists
-        Doctor doctor = doctorRepository.findById(doctorId)
-                .orElseThrow(() -> new ResourceNotFoundException("Doctor not found with ID: " + doctorId));
-
-        List<Appointment> appointments = appointmentRepository.findByDoctor_DoctorIdOrderByCreatedAtDesc(doctorId);
-
-        return appointments.stream()
-                .filter(appointment -> appointment.getPatient() != null)
-                .filter(appointment -> appointment.getPatient().getUser() != null)
-                .filter(appointment -> appointment.getSchedule() != null)
-                .map(appointment -> new AppointmentResponse(
-                        appointment.getAppointmentId(),
-                        appointment.getPatient().getPatientId(),
-                        appointment.getPatient().getUser().getName(),
-                        doctor.getDoctorId(),
-                        doctor.getUser() != null ? doctor.getUser().getName() : null,
-                        doctor.getSpecialization(),
-                        appointment.getSchedule().getScheduleId(),
-                        appointment.getSchedule().getStartTime(),
-                        appointment.getSchedule().getEndTime(),
-                        appointment.getStatus(),
-                        appointment.getCreatedAt(),
-                        appointment.getUpdatedAt()
-                ))
-                .collect(Collectors.toList());
+        return doctorRepository.findById(doctorId)
+                .map(doctor -> {
+                    List<Appointment> appointments = appointmentRepository.findByDoctor_DoctorIdOrderByCreatedAtDesc(doctorId);
+                    return appointments.stream()
+                            .filter(appointment -> appointment.getPatient() != null)
+                            .filter(appointment -> appointment.getPatient().getUser() != null)
+                            .filter(appointment -> appointment.getSchedule() != null)
+                            .map(appointment -> new AppointmentResponse(
+                                    appointment.getAppointmentId(),
+                                    appointment.getPatient().getPatientId(),
+                                    appointment.getPatient().getUser().getName(),
+                                    doctor.getDoctorId(),
+                                    doctor.getUser() != null ? doctor.getUser().getName() : "Unknown",
+                                    doctor.getSpecialization(),
+                                    appointment.getSchedule().getScheduleId(),
+                                    appointment.getSchedule().getStartTime(),
+                                    appointment.getSchedule().getEndTime(),
+                                    appointment.getStatus(),
+                                    appointment.getCreatedAt(),
+                                    appointment.getUpdatedAt()
+                            ))
+                            .collect(Collectors.toList());
+                })
+                .orElse(List.of());
     }
 
     /**
