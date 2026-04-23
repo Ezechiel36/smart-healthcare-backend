@@ -147,10 +147,13 @@ public class AppointmentService {
         List<Appointment> appointments = appointmentRepository.findByPatient_PatientIdOrderByCreatedAtDesc(patientId);
 
         return appointments.stream()
+                .filter(appointment -> appointment.getDoctor() != null)
+                .filter(appointment -> appointment.getDoctor().getUser() != null)
+                .filter(appointment -> appointment.getSchedule() != null)
                 .map(appointment -> new AppointmentResponse(
                         appointment.getAppointmentId(),
                         patient.getPatientId(),
-                        patient.getUser().getName(),
+                        patient.getUser() != null ? patient.getUser().getName() : null,
                         appointment.getDoctor().getDoctorId(),
                         appointment.getDoctor().getUser().getName(),
                         appointment.getDoctor().getSpecialization(),
@@ -179,12 +182,15 @@ public class AppointmentService {
         List<Appointment> appointments = appointmentRepository.findByDoctor_DoctorIdOrderByCreatedAtDesc(doctorId);
 
         return appointments.stream()
+                .filter(appointment -> appointment.getPatient() != null)
+                .filter(appointment -> appointment.getPatient().getUser() != null)
+                .filter(appointment -> appointment.getSchedule() != null)
                 .map(appointment -> new AppointmentResponse(
                         appointment.getAppointmentId(),
                         appointment.getPatient().getPatientId(),
                         appointment.getPatient().getUser().getName(),
                         doctor.getDoctorId(),
-                        doctor.getUser().getName(),
+                        doctor.getUser() != null ? doctor.getUser().getName() : null,
                         doctor.getSpecialization(),
                         appointment.getSchedule().getScheduleId(),
                         appointment.getSchedule().getStartTime(),

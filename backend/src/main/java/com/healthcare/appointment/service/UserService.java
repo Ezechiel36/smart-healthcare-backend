@@ -108,8 +108,9 @@ public class UserService {
      * @throws ResourceNotFoundException if user not found
      */
     public User findByEmail(String email) {
-        return userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
+        String normalizedEmail = email == null ? null : email.trim().toLowerCase();
+        return userRepository.findByEmail(normalizedEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + normalizedEmail));
     }
 
     /**

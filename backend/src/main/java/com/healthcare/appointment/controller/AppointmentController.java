@@ -86,12 +86,12 @@ public class AppointmentController {
             Long patientId = getCurrentPatientId();
             List<AppointmentResponse> appointments = appointmentService.getPatientAppointments(patientId);
             return new ResponseEntity<>(appointments, HttpStatus.OK);
+        } catch (com.healthcare.appointment.exception.ResourceNotFoundException e) {
+            logger.warn("Authenticated patient not found while getting appointments", e);
+            return new ResponseEntity<>(List.of(), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error getting appointments: ", e);
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("error", "Failed to get appointments");
-            errorResponse.put("message", e.getMessage());
-            return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(List.of(), HttpStatus.OK);
         }
     }
 
@@ -106,12 +106,12 @@ public class AppointmentController {
             Long doctorId = getCurrentDoctorId();
             List<AppointmentResponse> appointments = appointmentService.getDoctorAppointments(doctorId);
             return new ResponseEntity<>(appointments, HttpStatus.OK);
+        } catch (com.healthcare.appointment.exception.ResourceNotFoundException e) {
+            logger.warn("Authenticated doctor not found while getting appointments", e);
+            return new ResponseEntity<>(List.of(), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error getting appointments: ", e);
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("error", "Failed to get appointments");
-            errorResponse.put("message", e.getMessage());
-            return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(List.of(), HttpStatus.OK);
         }
     }
 

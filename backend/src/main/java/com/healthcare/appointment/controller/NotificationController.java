@@ -63,9 +63,12 @@ public class NotificationController {
 
             return new ResponseEntity<>(response, HttpStatus.OK);
 
+        } catch (com.healthcare.appointment.exception.ResourceNotFoundException e) {
+            logger.warn("Authenticated user not found while getting notifications", e);
+            return new ResponseEntity<>(List.of(), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error getting notifications: ", e);
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(List.of(), HttpStatus.OK);
         }
     }
 
@@ -89,9 +92,12 @@ public class NotificationController {
 
             return new ResponseEntity<>(count, HttpStatus.OK);
 
+        } catch (com.healthcare.appointment.exception.ResourceNotFoundException e) {
+            logger.warn("Authenticated user not found while getting notification count", e);
+            return new ResponseEntity<>(0, HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error getting notification count: ", e);
-            return new ResponseEntity<>(0, HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(0, HttpStatus.OK);
         }
     }
 }
