@@ -10,7 +10,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -18,6 +21,8 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/notifications")
 public class NotificationController {
+
+    private static final Logger logger = LoggerFactory.getLogger(NotificationController.class);
 
     @Autowired
     private NotificationRepository notificationRepository;
@@ -34,6 +39,7 @@ public class NotificationController {
      */
     @GetMapping("/my-notifications")
     @PreAuthorize("isAuthenticated()")
+    @Transactional(readOnly = true)
     public ResponseEntity<List<NotificationResponse>> getMyNotifications(Authentication authentication) {
         try {
             // Get current user
@@ -58,6 +64,7 @@ public class NotificationController {
             return new ResponseEntity<>(response, HttpStatus.OK);
 
         } catch (Exception e) {
+            logger.error("Error getting notifications: ", e);
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -83,6 +90,7 @@ public class NotificationController {
             return new ResponseEntity<>(count, HttpStatus.OK);
 
         } catch (Exception e) {
+            logger.error("Error getting notification count: ", e);
             return new ResponseEntity<>(0, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
