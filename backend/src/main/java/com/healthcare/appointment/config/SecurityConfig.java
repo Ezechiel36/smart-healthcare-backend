@@ -73,14 +73,14 @@ public class SecurityConfig {
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
                         // Schedule endpoints
-                        .requestMatchers("/api/schedules/doctors/**/available").authenticated()
+                        .requestMatchers("/api/schedules/doctors/{id}/available").authenticated()
                         .requestMatchers("/api/schedules/availability", "/api/schedules/my-schedules").hasRole("DOCTOR")
                         .requestMatchers("/api/schedules/**").authenticated()
 
                         // Appointment endpoints
                         .requestMatchers("/api/appointments/book", "/api/appointments/my-appointments").hasRole("PATIENT")
                         .requestMatchers("/api/appointments/doctor-appointments").hasRole("DOCTOR")
-                        .requestMatchers("/api/appointments/*/status").hasRole("DOCTOR")
+                        .requestMatchers("/api/appointments/{id}/status").hasRole("DOCTOR")  // ← fixed
                         .requestMatchers("/api/appointments/**").authenticated()
 
                         // All other requests require authentication
@@ -91,4 +91,3 @@ public class SecurityConfig {
         return http.build();
     }
 }
-
