@@ -32,7 +32,14 @@ const PrivateRoute = ({ children, allowedRoles }: { children: React.ReactNode; a
   }
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {
-    return <Navigate to="/dashboard" />;
+    // Redirect to appropriate dashboard based on role
+    if (user.role === 'ADMIN') {
+      return <Navigate to="/admin-dashboard" />;
+    } else if (user.role === 'DOCTOR') {
+      return <Navigate to="/doctor-dashboard" />;
+    } else {
+      return <Navigate to="/dashboard" />;
+    }
   }
 
   return <>{children}</>;
@@ -66,20 +73,35 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 function App() {
   const user = JSON.parse(localStorage.getItem('user') || 'null');
 
+  // Create a component to handle role-based redirect from root
+  const RoleBasedRedirect = () => {
+    const token = localStorage.getItem('token');
+    if (!token || !user) {
+      return <Navigate to="/login" />;
+    }
+    
+    if (user.role === 'ADMIN') {
+      return <Navigate to="/admin-dashboard" />;
+    } else if (user.role === 'DOCTOR') {
+      return <Navigate to="/doctor-dashboard" />;
+    } else {
+      return <Navigate to="/dashboard" />;
+    }
+  };
+
   return (
     <Router>
       <Layout>
         <Routes>
-            <Route path="/" element={<Navigate to="/login" />} />
+            <Route path="/" element={<RoleBasedRedirect />} />
             <Route path="/about" element={<About />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route
               path="/dashboard"
               element={
-                <PrivateRoute>
-                  {user?.role === 'DOCTOR' ? <DoctorDashboard /> :
-                   user?.role === 'ADMIN' ? <AdminDashboard /> : <Dashboard />}
+                <PrivateRoute allowedRoles={['PATIENT']}>
+                  <Dashboard />
                 </PrivateRoute>
               }
             />

@@ -39,6 +39,18 @@ const AdminDashboard: React.FC = () => {
         navigate('/login');
         return;
       }
+
+      // Check if user has ADMIN role
+      if (currentUser.role !== 'ADMIN') {
+        setError('Access denied. Admin privileges required.');
+        // Redirect to appropriate dashboard based on role
+        if (currentUser.role === 'DOCTOR') {
+          navigate('/doctor-dashboard');
+        } else {
+          navigate('/dashboard');
+        }
+        return;
+      }
       
       const dashboardRes = await adminAPI.getDashboard();
       setDashboardData(dashboardRes.data);
