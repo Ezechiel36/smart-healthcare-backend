@@ -164,9 +164,14 @@ public class ScheduleController {
             throw new IllegalArgumentException("Current user is not a doctor");
         }
 
-        // Find doctor record
+        // Find doctor record, create if missing
         Doctor doctor = doctorRepository.findByUser_UserId(user.getUserId())
-                .orElseThrow(() -> new IllegalArgumentException("Doctor record not found for current user"));
+                .orElseGet(() -> {
+                    Doctor newDoctor = new Doctor();
+                    newDoctor.setUser(user);
+                    newDoctor.setSpecialization("General"); // Default specialization
+                    return doctorRepository.save(newDoctor);
+                });
 
         return doctor.getDoctorId();
     }

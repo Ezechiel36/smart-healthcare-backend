@@ -32,16 +32,23 @@ public class AuthController {
      */
     @PostMapping("/register")
     public ResponseEntity<Map<String, Object>> register(@RequestBody RegistrationRequest registrationRequest) {
-        User registeredUser = userService.registerUser(registrationRequest);
+        try {
+            User registeredUser = userService.registerUser(registrationRequest);
 
-        Map<String, Object> response = new HashMap<>();
-        response.put("message", "User registered successfully");
-        response.put("userId", registeredUser.getUserId());
-        response.put("email", registeredUser.getEmail());
-        response.put("name", registeredUser.getName());
-        response.put("role", registeredUser.getRole());
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "User registered successfully");
+            response.put("userId", registeredUser.getUserId());
+            response.put("email", registeredUser.getEmail());
+            response.put("name", registeredUser.getName());
+            response.put("role", registeredUser.getRole());
 
-        return new ResponseEntity<>(response, HttpStatus.CREATED);
+            return new ResponseEntity<>(response, HttpStatus.CREATED);
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Registration Failed");
+            errorResponse.put("message", e.getMessage());
+            return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+        }
     }
 
     /**
@@ -52,28 +59,42 @@ public class AuthController {
      */
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest loginRequest) {
-        User user = userService.findByEmail(loginRequest.getEmail());
+        try {
+            User user = userService.findByEmail(loginRequest.getEmail());
 
-        // Validate password
-        if (!userService.validatePassword(loginRequest.getPassword(), user.getPassword())) {
+            if (user == null) {
+                return new ResponseEntity<>(
+                        new LoginResponse(null, "Invalid email or password", null, null, null, null),
+                        HttpStatus.UNAUTHORIZED
+                );
+            }
+
+            // Validate password
+            if (!userService.validatePassword(loginRequest.getPassword(), user.getPassword())) {
+                return new ResponseEntity<>(
+                        new LoginResponse(null, "Invalid email or password", null, null, null, null),
+                        HttpStatus.UNAUTHORIZED
+                );
+            }
+
+            // Generate JWT token
+            String token = jwtTokenProvider.generateToken(user.getEmail(), user.getRole().toString());
+
+            LoginResponse loginResponse = new LoginResponse();
+            loginResponse.setToken(token);
+            loginResponse.setMessage("Login successful");
+            loginResponse.setUserId(user.getUserId());
+            loginResponse.setEmail(user.getEmail());
+            loginResponse.setRole(user.getRole().toString());
+            loginResponse.setName(user.getName());
+
+            return new ResponseEntity<>(loginResponse, HttpStatus.OK);
+        } catch (Exception e) {
             return new ResponseEntity<>(
-                    new LoginResponse(null, "Invalid email or password", null, null, null, null),
-                    HttpStatus.UNAUTHORIZED
+                    new LoginResponse(null, "An error occurred during login", null, null, null, null),
+                    HttpStatus.INTERNAL_SERVER_ERROR
             );
         }
-
-        // Generate JWT token
-        String token = jwtTokenProvider.generateToken(user.getEmail(), user.getRole().toString());
-
-        LoginResponse loginResponse = new LoginResponse();
-        loginResponse.setToken(token);
-        loginResponse.setMessage("Login successful");
-        loginResponse.setUserId(user.getUserId());
-        loginResponse.setEmail(user.getEmail());
-        loginResponse.setRole(user.getRole().toString());
-        loginResponse.setName(user.getName());
-
-        return new ResponseEntity<>(loginResponse, HttpStatus.OK);
     }
 
     /**

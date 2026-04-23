@@ -8,7 +8,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
@@ -16,6 +19,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/admin")
 public class AdminController {
+
+    private static final Logger logger = LoggerFactory.getLogger(AdminController.class);
 
     @Autowired
     private AdminService adminService;
@@ -31,6 +36,7 @@ public class AdminController {
      */
     @GetMapping("/dashboard")
     @PreAuthorize("hasRole('ADMIN')")
+    @Transactional(readOnly = true)
     public ResponseEntity<Map<String, Object>> getDashboard() {
         try {
             Map<String, Object> analytics = adminService.getDashboardAnalytics();
@@ -54,6 +60,7 @@ public class AdminController {
      */
     @GetMapping("/users")
     @PreAuthorize("hasRole('ADMIN')")
+    @Transactional(readOnly = true)
     public ResponseEntity<List<User>> getAllUsers() {
         try {
             List<User> users = userService.getAllUsers();
@@ -91,6 +98,7 @@ public class AdminController {
      */
     @GetMapping("/doctors/pending")
     @PreAuthorize("hasRole('ADMIN')")
+    @Transactional(readOnly = true)
     public ResponseEntity<List<com.healthcare.appointment.model.Doctor>> getPendingDoctors() {
         try {
             List<com.healthcare.appointment.model.Doctor> pendingDoctors = adminService.getPendingDoctors();
