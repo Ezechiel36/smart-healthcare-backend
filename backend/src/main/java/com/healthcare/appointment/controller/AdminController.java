@@ -1,5 +1,6 @@
 package com.healthcare.appointment.controller;
 
+import com.healthcare.appointment.exception.ResourceNotFoundException;
 import com.healthcare.appointment.model.User;
 import com.healthcare.appointment.service.AdminService;
 import com.healthcare.appointment.service.UserService;
@@ -75,6 +76,8 @@ public class AdminController {
         try {
             userService.deleteUser(id);
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        } catch (ResourceNotFoundException e) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         } catch (Exception e) {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }

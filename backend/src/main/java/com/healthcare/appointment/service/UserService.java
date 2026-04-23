@@ -6,8 +6,10 @@ import com.healthcare.appointment.model.Doctor;
 import com.healthcare.appointment.model.Patient;
 import com.healthcare.appointment.model.User;
 import com.healthcare.appointment.model.UserRole;
+import com.healthcare.appointment.repository.AppointmentRepository;
 import com.healthcare.appointment.repository.DoctorRepository;
 import com.healthcare.appointment.repository.PatientRepository;
+import com.healthcare.appointment.repository.ScheduleRepository;
 import com.healthcare.appointment.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -25,6 +27,12 @@ public class UserService {
 
     @Autowired
     private DoctorRepository doctorRepository;
+
+    @Autowired
+    private AppointmentRepository appointmentRepository;
+
+    @Autowired
+    private ScheduleRepository scheduleRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -141,10 +149,22 @@ public class UserService {
      *
      * @param userId User ID to delete
      */
+    @Transactional
     public void deleteUser(Long userId) {
-        if (!userRepository.existsById(userId)) {
-            throw new ResourceNotFoundException("User not found with ID: " + userId);
-        }
-        userRepository.deleteById(userId);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+
+        patientRepository.findByUser_UserId(userId).ifPresent(patient -> {
+            appointmentRepository.deleteByPatient_PatientId(patient.getPatientId());
+            patientRepository.delete(patient);
+        });
+
+        doctorRepository.findByUser_UserId(userId).ifPresent(doctor -> {
+            appointmentRepository.deleteByDoctor_DoctorId(doctor.getDoctorId());
+            scheduleRepository.deleteByDoctor_DoctorId(doctor.getDoctorId());
+            doctorRepository.delete(doctor);
+        });
+
+        userRepository.delete(user);
     }
 }

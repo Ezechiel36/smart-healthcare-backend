@@ -29,6 +29,11 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
     List<Schedule> findByDoctor_DoctorIdAndIsBookedFalseOrderByStartTimeAsc(Long doctorId);
 
     /**
+     * Delete all schedules for a specific doctor
+     */
+    void deleteByDoctor_DoctorId(Long doctorId);
+
+    /**
      * Check for overlapping schedules for a specific doctor
      */
     @Query("SELECT COUNT(s) FROM Schedule s WHERE s.doctor.doctorId = :doctorId AND " +

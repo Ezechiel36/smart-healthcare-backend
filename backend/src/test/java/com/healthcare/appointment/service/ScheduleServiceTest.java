@@ -1,7 +1,6 @@
 package com.healthcare.appointment.service;
 
 import com.healthcare.appointment.dto.AddAvailabilityRequest;
-import com.healthcare.appointment.exception.ResourceNotFoundException;
 import com.healthcare.appointment.model.Doctor;
 import com.healthcare.appointment.model.Schedule;
 import com.healthcare.appointment.model.User;
