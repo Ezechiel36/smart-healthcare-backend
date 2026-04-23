@@ -18,7 +18,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.List;
@@ -27,6 +30,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/appointments")
 public class AppointmentController {
+
+    private static final Logger logger = LoggerFactory.getLogger(AppointmentController.class);
 
     @Autowired
     private AppointmentService appointmentService;
@@ -73,6 +78,7 @@ public class AppointmentController {
     /**
      * Get current patient's appointments
      */
+    @Transactional(readOnly = true)
     @GetMapping("/my-appointments")
     @PreAuthorize("hasRole('PATIENT')")
     public ResponseEntity<?> getMyAppointments() {
@@ -81,6 +87,7 @@ public class AppointmentController {
             List<AppointmentResponse> appointments = appointmentService.getPatientAppointments(patientId);
             return new ResponseEntity<>(appointments, HttpStatus.OK);
         } catch (Exception e) {
+            logger.error("Error getting appointments: ", e);
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("error", "Failed to get appointments");
             errorResponse.put("message", e.getMessage());
@@ -91,6 +98,7 @@ public class AppointmentController {
     /**
      * Get current doctor's appointments
      */
+    @Transactional(readOnly = true)
     @GetMapping("/doctor-appointments")
     @PreAuthorize("hasRole('DOCTOR')")
     public ResponseEntity<?> getDoctorAppointments() {
@@ -99,6 +107,7 @@ public class AppointmentController {
             List<AppointmentResponse> appointments = appointmentService.getDoctorAppointments(doctorId);
             return new ResponseEntity<>(appointments, HttpStatus.OK);
         } catch (Exception e) {
+            logger.error("Error getting appointments: ", e);
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("error", "Failed to get appointments");
             errorResponse.put("message", e.getMessage());
