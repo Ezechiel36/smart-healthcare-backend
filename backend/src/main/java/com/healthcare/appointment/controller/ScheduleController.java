@@ -68,9 +68,16 @@ public class ScheduleController {
      */
     @GetMapping("/doctors/{doctorId}/available")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<List<ScheduleResponse>> getAvailableSlots(@PathVariable Long doctorId) {
-        List<ScheduleResponse> availableSlots = scheduleService.getAvailableSlots(doctorId);
-        return new ResponseEntity<>(availableSlots, HttpStatus.OK);
+    public ResponseEntity<?> getAvailableSlots(@PathVariable Long doctorId) {
+        try {
+            List<ScheduleResponse> availableSlots = scheduleService.getAvailableSlots(doctorId);
+            return new ResponseEntity<>(availableSlots, HttpStatus.OK);
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to get available slots");
+            errorResponse.put("message", e.getMessage());
+            return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     /**

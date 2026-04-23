@@ -4,6 +4,7 @@ import com.healthcare.appointment.dto.AppointmentResponse;
 import com.healthcare.appointment.dto.BookAppointmentRequest;
 import com.healthcare.appointment.dto.UpdateAppointmentStatusRequest;
 import com.healthcare.appointment.model.Appointment;
+import com.healthcare.appointment.model.Doctor;
 import com.healthcare.appointment.model.Patient;
 import com.healthcare.appointment.model.User;
 import com.healthcare.appointment.model.UserRole;
@@ -74,10 +75,17 @@ public class AppointmentController {
      */
     @GetMapping("/my-appointments")
     @PreAuthorize("hasRole('PATIENT')")
-    public ResponseEntity<List<AppointmentResponse>> getMyAppointments() {
-        Long patientId = getCurrentPatientId();
-        List<AppointmentResponse> appointments = appointmentService.getPatientAppointments(patientId);
-        return new ResponseEntity<>(appointments, HttpStatus.OK);
+    public ResponseEntity<?> getMyAppointments() {
+        try {
+            Long patientId = getCurrentPatientId();
+            List<AppointmentResponse> appointments = appointmentService.getPatientAppointments(patientId);
+            return new ResponseEntity<>(appointments, HttpStatus.OK);
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to get appointments");
+            errorResponse.put("message", e.getMessage());
+            return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     /**
@@ -85,10 +93,17 @@ public class AppointmentController {
      */
     @GetMapping("/doctor-appointments")
     @PreAuthorize("hasRole('DOCTOR')")
-    public ResponseEntity<List<AppointmentResponse>> getDoctorAppointments() {
-        Long doctorId = getCurrentDoctorId();
-        List<AppointmentResponse> appointments = appointmentService.getDoctorAppointments(doctorId);
-        return new ResponseEntity<>(appointments, HttpStatus.OK);
+    public ResponseEntity<?> getDoctorAppointments() {
+        try {
+            Long doctorId = getCurrentDoctorId();
+            List<AppointmentResponse> appointments = appointmentService.getDoctorAppointments(doctorId);
+            return new ResponseEntity<>(appointments, HttpStatus.OK);
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to get appointments");
+            errorResponse.put("message", e.getMessage());
+            return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     /**
@@ -164,9 +179,14 @@ public class AppointmentController {
             throw new IllegalArgumentException("Current user is not a patient");
         }
 
-        // Find patient record
+        // Find patient record, create if missing
         Patient patient = patientRepository.findByUser_UserId(user.getUserId())
-                .orElseThrow(() -> new IllegalArgumentException("Patient record not found for current user"));
+                .orElseGet(() -> {
+                    Patient newPatient = new Patient();
+                    newPatient.setUser(user);
+                    newPatient.setMedicalHistory(null);
+                    return patientRepository.save(newPatient);
+                });
 
         return patient.getPatientId();
     }
@@ -185,10 +205,16 @@ public class AppointmentController {
             throw new IllegalArgumentException("Current user is not a doctor");
         }
 
-        // Find doctor record
-        return doctorRepository.findByUser_UserId(user.getUserId())
-                .orElseThrow(() -> new IllegalArgumentException("Doctor record not found for current user"))
-                .getDoctorId();
+        // Find doctor record, create if missing
+        Doctor doctor = doctorRepository.findByUser_UserId(user.getUserId())
+                .orElseGet(() -> {
+                    Doctor newDoctor = new Doctor();
+                    newDoctor.setUser(user);
+                    newDoctor.setSpecialization("General"); // Default specialization
+                    return doctorRepository.save(newDoctor);
+                });
+                
+        return doctor.getDoctorId();
     }
 
     /**
@@ -197,12 +223,22 @@ public class AppointmentController {
     private Long getUserSpecificId(User user) {
         if (user.getRole() == UserRole.PATIENT) {
             Patient patient = patientRepository.findByUser_UserId(user.getUserId())
-                    .orElseThrow(() -> new IllegalArgumentException("Patient record not found"));
+                    .orElseGet(() -> {
+                        Patient newPatient = new Patient();
+                        newPatient.setUser(user);
+                        newPatient.setMedicalHistory(null);
+                        return patientRepository.save(newPatient);
+                    });
             return patient.getPatientId();
         } else if (user.getRole() == UserRole.DOCTOR) {
-            return doctorRepository.findByUser_UserId(user.getUserId())
-                    .orElseThrow(() -> new IllegalArgumentException("Doctor record not found"))
-                    .getDoctorId();
+            Doctor doctor = doctorRepository.findByUser_UserId(user.getUserId())
+                    .orElseGet(() -> {
+                        Doctor newDoctor = new Doctor();
+                        newDoctor.setUser(user);
+                        newDoctor.setSpecialization("General"); // Default specialization
+                        return doctorRepository.save(newDoctor);
+                    });
+            return doctor.getDoctorId();
         } else if (user.getRole() == UserRole.ADMIN) {
             return user.getUserId(); // For admin, we use user ID directly
         }
