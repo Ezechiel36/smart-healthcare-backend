@@ -44,6 +44,7 @@ public class AdminController {
             return new ResponseEntity<>(analytics, HttpStatus.OK);
 
         } catch (Exception e) {
+            logger.error("Error retrieving dashboard data", e);
             Map<String, Object> errorResponse = Map.of(
                 "error", "Failed to retrieve dashboard data",
                 "message", e.getMessage()
@@ -66,6 +67,7 @@ public class AdminController {
             List<User> users = userService.getAllUsers();
             return new ResponseEntity<>(users, HttpStatus.OK);
         } catch (Exception e) {
+            logger.error("Error retrieving users", e);
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -84,8 +86,10 @@ public class AdminController {
             userService.deleteUser(id);
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         } catch (ResourceNotFoundException e) {
+            logger.warn("User not found for deletion: {}", id, e);
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         } catch (Exception e) {
+            logger.error("Error deleting user with id {}", id, e);
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -104,6 +108,7 @@ public class AdminController {
             List<com.healthcare.appointment.model.Doctor> pendingDoctors = adminService.getPendingDoctors();
             return new ResponseEntity<>(pendingDoctors, HttpStatus.OK);
         } catch (Exception e) {
+            logger.error("Error retrieving pending doctors", e);
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -129,6 +134,7 @@ public class AdminController {
             com.healthcare.appointment.model.Doctor doctor = adminService.updateDoctorApproval(id, approved);
             return new ResponseEntity<>(doctor, HttpStatus.OK);
         } catch (Exception e) {
+            logger.error("Error updating doctor approval for id {}", id, e);
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
