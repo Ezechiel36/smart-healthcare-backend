@@ -6,6 +6,7 @@ import './App.css';
 import './styles/theme.css';
 
 // Components
+import LandingPage from './components/LandingPage';
 import Login from './components/Login';
 import Register from './components/Register';
 import Dashboard from './components/Dashboard';
@@ -48,8 +49,8 @@ const PrivateRoute = ({ children, allowedRoles }: { children: React.ReactNode; a
 // Layout component that conditionally renders header and sidebar
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
-  const showHeader = !['/', '/login', '/register'].includes(location.pathname);
-  const isAuthPage = ['/', '/login', '/register'].includes(location.pathname);
+  const showHeader = !['/', '/landing', '/login', '/register'].includes(location.pathname);
+  const isAuthPage = ['/', '/landing', '/login', '/register'].includes(location.pathname);
 
   return (
     <div className={`App ${isAuthPage ? 'auth-background' : ''}`}>
@@ -62,7 +63,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           </Container>
         </div>
       ) : (
-        <Container className={isAuthPage ? '' : 'mt-4'}>
+        <Container className={isAuthPage ? '' : 'mt-4'} style={{ padding: location.pathname === '/landing' ? 0 : undefined }}>
           {children}
         </Container>
       )}
@@ -77,9 +78,9 @@ function App() {
   const RoleBasedRedirect = () => {
     const token = localStorage.getItem('token');
     if (!token || !user) {
-      return <Navigate to="/login" />;
+      return <Navigate to="/landing" />;
     }
-    
+
     if (user.role === 'ADMIN') {
       return <Navigate to="/admin-dashboard" />;
     } else if (user.role === 'DOCTOR') {
@@ -94,6 +95,7 @@ function App() {
       <Layout>
         <Routes>
             <Route path="/" element={<RoleBasedRedirect />} />
+            <Route path="/landing" element={<LandingPage />} />
             <Route path="/about" element={<About />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
