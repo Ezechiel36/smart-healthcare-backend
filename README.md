@@ -1,29 +1,30 @@
 # Smart Healthcare Appointment Management System
 
-A comprehensive REST API for managing healthcare appointments with secure role-based access control. Built with Spring Boot, Spring Security, JWT authentication, and MySQL database.
+A comprehensive REST API for managing healthcare appointments with secure role-based access control. Built with Spring Boot, Spring Security, JWT authentication, and PostgreSQL database.
 
 ## 🚀 Features
 
 - **Secure Authentication**: JWT-based stateless authentication with BCrypt password hashing
 - **Role-Based Access Control**: Support for Patients, Doctors, and Administrators
-- **Appointment Management**: Book, cancel, and manage appointments
+- **Appointment Management**: Book, cancel, and manage appointments with approval workflow
 - **Doctor Availability**: Manage doctor schedules and availability
 - **Automated Notifications**: System notifications for appointment updates
 - **RESTful API**: Clean, well-documented REST endpoints
+- **Appointment Status Flow**: Patient appointments start as PENDING, doctors can approve or reject
 
 ## 🏗️ Architecture
 
 - **Backend**: Spring Boot 3.2.5
 - **Frontend**: React 19 with TypeScript and Bootstrap
 - **Security**: Spring Security with JWT tokens
-- **Database**: MySQL with JPA/Hibernate
+- **Database**: PostgreSQL with JPA/Hibernate
 - **Build Tool**: Maven (Backend), npm (Frontend)
 - **Java Version**: 17
 
 ## 📋 Prerequisites
 
 - Java 17 or higher
-- MySQL 8.0 or higher
+- PostgreSQL 14 or higher
 - Node.js 16 or higher
 - npm or yarn
 - Maven 3.6+
@@ -42,15 +43,12 @@ cd backend
 ```
 
 #### Database Setup
-Create a MySQL database named `healthcare_db` and ensure the user credentials match the configuration:
+Create a PostgreSQL database named `healthcare_db`. The application uses environment variables for database configuration:
 
-```sql
-CREATE DATABASE healthcare_db;
--- Create user 'Admin' with password 'Admin@123' (case-sensitive)
-CREATE USER 'Admin'@'localhost' IDENTIFIED BY 'Admin@123';
-GRANT ALL PRIVILEGES ON healthcare_db.* TO 'Admin'@'localhost';
-FLUSH PRIVILEGES;
-```
+- **DB_URL**: PostgreSQL connection URL (e.g., `jdbc:postgresql://localhost:5432/healthcare_db`)
+- **DB_USERNAME**: Database username
+- **DB_PASSWORD**: Database password
+- **JWT_SECRET**: Secret key for JWT token generation
 
 #### Build and Run Backend
 ```bash
@@ -74,29 +72,29 @@ npm start
 The frontend will start on `http://localhost:3000`
 
 ### 4. Database Connection
-The application is configured to connect to MySQL with:
-- **Username**: Admin (case-sensitive)
-- **Password**: Admin@123 (default, can be changed in application.yml)
-- **Database**: healthcare_db
-- **Port**: 3306
+The application is configured to connect to PostgreSQL using environment variables:
+- **DB_URL**: PostgreSQL connection URL
+- **DB_USERNAME**: Database username
+- **DB_PASSWORD**: Database password
+- **Port**: 5432 (default PostgreSQL port)
 
 ## 📊 Database Schema
 
 ### Users Table
 ```sql
 CREATE TABLE users (
-    user_id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id BIGSERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
-    role ENUM('PATIENT', 'DOCTOR', 'ADMIN') NOT NULL
+    role VARCHAR(20) NOT NULL CHECK (role IN ('PATIENT', 'DOCTOR', 'ADMIN'))
 );
 ```
 
 ### Patients Table
 ```sql
 CREATE TABLE patients (
-    patient_id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    patient_id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL,
     medical_history TEXT,
     FOREIGN KEY (user_id) REFERENCES users(user_id)
@@ -106,7 +104,7 @@ CREATE TABLE patients (
 ### Doctors Table
 ```sql
 CREATE TABLE doctors (
-    doctor_id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    doctor_id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL,
     specialization VARCHAR(255) NOT NULL,
     FOREIGN KEY (user_id) REFERENCES users(user_id)
@@ -116,10 +114,10 @@ CREATE TABLE doctors (
 ### Schedules Table
 ```sql
 CREATE TABLE schedules (
-    schedule_id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    schedule_id BIGSERIAL PRIMARY KEY,
     doctor_id BIGINT NOT NULL,
-    start_time DATETIME NOT NULL,
-    end_time DATETIME NOT NULL,
+    start_time TIMESTAMP NOT NULL,
+    end_time TIMESTAMP NOT NULL,
     is_booked BOOLEAN NOT NULL DEFAULT FALSE,
     FOREIGN KEY (doctor_id) REFERENCES doctors(doctor_id)
 );
@@ -128,13 +126,13 @@ CREATE TABLE schedules (
 ### Appointments Table
 ```sql
 CREATE TABLE appointments (
-    appointment_id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    appointment_id BIGSERIAL PRIMARY KEY,
     patient_id BIGINT NOT NULL,
     doctor_id BIGINT NOT NULL,
     schedule_id BIGINT NOT NULL UNIQUE,
-    status ENUM('PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELED', 'NO_SHOW') NOT NULL,
-    created_at DATETIME NOT NULL,
-    updated_at DATETIME,
+    status VARCHAR(20) NOT NULL CHECK (status IN ('PENDING', 'CONFIRMED', 'REJECTED', 'COMPLETED', 'CANCELED', 'NO_SHOW')),
+    created_at TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP,
     FOREIGN KEY (patient_id) REFERENCES patients(patient_id),
     FOREIGN KEY (doctor_id) REFERENCES doctors(doctor_id),
     FOREIGN KEY (schedule_id) REFERENCES schedules(schedule_id)
@@ -144,11 +142,11 @@ CREATE TABLE appointments (
 ### Notifications Table
 ```sql
 CREATE TABLE notifications (
-    notification_id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    notification_id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL,
     appointment_id BIGINT,
     message TEXT NOT NULL,
-    timestamp DATETIME NOT NULL,
+    timestamp TIMESTAMP NOT NULL,
     FOREIGN KEY (user_id) REFERENCES users(user_id),
     FOREIGN KEY (appointment_id) REFERENCES appointments(appointment_id)
 );
@@ -341,7 +339,7 @@ Content-Type: application/json
     "doctorName": "Dr. Sarah Johnson",
     "startTime": "2026-04-15T09:00:00",
     "endTime": "2026-04-15T10:00:00",
-    "status": "CONFIRMED"
+    "status": "PENDING"
 }
 ```
 
@@ -364,7 +362,7 @@ Authorization: Bearer <jwt-token>
         "scheduleId": 1,
         "startTime": "2026-04-15T09:00:00",
         "endTime": "2026-04-15T10:00:00",
-        "status": "CONFIRMED",
+        "status": "PENDING",
         "createdAt": "2026-04-13T10:30:00",
         "updatedAt": null
     }
@@ -392,6 +390,32 @@ Authorization: Bearer <jwt-token>
 ```
 
 #### Update Appointment Status (Doctor Only)
+Doctors can approve, reject, complete, or mark appointments as no-show.
+
+**Approve Appointment (PENDING → CONFIRMED):**
+```http
+PUT /api/appointments/{appointmentId}/status
+Authorization: Bearer <jwt-token>
+Content-Type: application/json
+
+{
+    "status": "CONFIRMED"
+}
+```
+
+**Reject Appointment (PENDING → REJECTED):**
+```http
+PUT /api/appointments/{appointmentId}/status
+Authorization: Bearer <jwt-token>
+Content-Type: application/json
+
+{
+    "status": "REJECTED"
+}
+```
+Note: When an appointment is rejected, the schedule becomes available again for booking.
+
+**Complete Appointment (CONFIRMED → COMPLETED):**
 ```http
 PUT /api/appointments/{appointmentId}/status
 Authorization: Bearer <jwt-token>
@@ -402,12 +426,23 @@ Content-Type: application/json
 }
 ```
 
+**Mark No Show (CONFIRMED → NO_SHOW):**
+```http
+PUT /api/appointments/{appointmentId}/status
+Authorization: Bearer <jwt-token>
+Content-Type: application/json
+
+{
+    "status": "NO_SHOW"
+}
+```
+
 **Response:**
 ```json
 {
     "message": "Appointment status updated successfully",
     "appointmentId": 1,
-    "newStatus": "COMPLETED"
+    "newStatus": "CONFIRMED"
 }
 ```
 
@@ -594,6 +629,21 @@ Authorization: Bearer <doctor-jwt-token>
 
 ### 5. Update Appointment Status (Doctor Operations)
 
+#### Approve Appointment (PENDING → CONFIRMED)
+```json
+{
+    "status": "CONFIRMED"
+}
+```
+
+#### Reject Appointment (PENDING → REJECTED)
+```json
+{
+    "status": "REJECTED"
+}
+```
+Note: When rejected, the schedule becomes available again.
+
 #### Mark Appointment as Completed
 ```json
 {
@@ -632,7 +682,7 @@ Authorization: Bearer <doctor-jwt-token>
 
 ### Phase 1: Core Configuration & Entities ✅ Complete
 - [x] pom.xml with required dependencies
-- [x] application.yml with MySQL connection
+- [x] application.yml with PostgreSQL connection
 - [x] JPA Entities: User, Patient, Doctor with relationships
 - [x] Lombok annotations implemented
 
@@ -658,7 +708,9 @@ Authorization: Bearer <doctor-jwt-token>
 - [x] AppointmentService with transactional methods
 - [x] Double-booking prevention with DoubleBookingException
 - [x] AppointmentController with role-based access
-- [x] Appointment status management
+- [x] Appointment status management (PENDING, CONFIRMED, REJECTED, COMPLETED, CANCELED, NO_SHOW)
+- [x] Appointment approval workflow (doctors can approve/reject pending appointments)
+- [x] Schedule availability restoration on appointment rejection
 - [x] Request/Response DTOs
 
 ### Phase 5: Notification Service & Admin Analytics ✅ Complete
@@ -671,15 +723,16 @@ Authorization: Bearer <doctor-jwt-token>
 
 ## 🚀 Future Enhancements
 
-- [ ] Notification system with email/SMS integration
-- [ ] Admin dashboard with comprehensive analytics
-- [ ] Medical history management
-- [ ] Appointment reminders
-- [ ] Patient ratings and reviews
-- [ ] Advanced search and filtering
-- [ ] Bulk appointment management
-- [ ] Calendar view integration
-- [ ] Payment integration (if required)
+- [ ] Email/SMS integration for real-time notifications
+- [ ] Medical history management with document uploads
+- [ ] Appointment reminders via email/SMS
+- [ ] Patient ratings and reviews for doctors
+- [ ] Advanced search and filtering for appointments and doctors
+- [ ] Bulk appointment management for administrators
+- [ ] Calendar view integration for better scheduling visualization
+- [ ] Payment integration for consultation fees
+- [ ] Telemedicine integration for video consultations
+- [ ] Prescription management system
 
 ## 🐛 Troubleshooting
 
