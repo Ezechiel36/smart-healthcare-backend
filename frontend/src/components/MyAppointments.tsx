@@ -20,6 +20,7 @@ interface Appointment {
 const MyAppointments: React.FC = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState('');
   const [showViewModal, setShowViewModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -32,10 +33,12 @@ const MyAppointments: React.FC = () => {
   const fetchAppointments = async () => {
     try {
       setLoading(true);
+      setError('');
       const res = await appointmentAPI.getMyAppointments();
-      setAppointments(res.data);
+      setAppointments(Array.isArray(res.data) ? res.data : []);
     } catch (err: any) {
       setError('Failed to load your appointments. Please try again later.');
+      setAppointments([]);
     } finally {
       setLoading(false);
     }
@@ -44,18 +47,20 @@ const MyAppointments: React.FC = () => {
   const handleDelete = async () => {
     if (!selectedApt) return;
     try {
-      setLoading(true);
+      setActionLoading(true);
       await appointmentAPI.cancelAppointment(selectedApt.appointmentId);
       setShowDeleteModal(false);
       setSelectedApt(null);
-      fetchAppointments();
+      await fetchAppointments();
       alert('Appointment deleted successfully.');
     } catch (err: any) {
       alert('Failed to delete: ' + (err.response?.data?.message || err.message));
     } finally {
-      setLoading(false);
+      setActionLoading(false);
     }
   };
+
+  const canCancelAppointment = (status: string) => !['COMPLETED', 'CANCELED', 'NO_SHOW'].includes(status.toUpperCase());
 
   const getBadgeVariant = (status: string) => {
     switch (status.toUpperCase()) {
@@ -141,12 +146,13 @@ const MyAppointments: React.FC = () => {
                             variant="outline-danger" 
                             size="sm"
                             className="rounded-pill px-3"
+                            disabled={!canCancelAppointment(apt.status)}
                             onClick={() => {
                               setSelectedApt(apt);
                               setShowDeleteModal(true);
                             }}
                           >
-                            🗑️ Delete
+                            🗑️ Cancel
                           </Button>
                         </div>
                       </td>
@@ -204,11 +210,13 @@ const MyAppointments: React.FC = () => {
       <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered size="sm">
         <Modal.Body className="p-4 text-center">
           <div className="text-danger display-4 mb-3">⚠️</div>
-          <h5 className="fw-bold">Delete Appointment?</h5>
-          <p className="text-muted small">This action cannot be undone. Are you sure you want to proceed?</p>
+          <h5 className="fw-bold">Cancel Appointment?</h5>
+          <p className="text-muted small">This appointment will be marked as canceled. Are you sure you want to proceed?</p>
           <div className="d-flex gap-2 mt-4">
             <Button variant="light" className="w-100 rounded-pill" onClick={() => setShowDeleteModal(false)}>Cancel</Button>
-            <Button variant="danger" className="w-100 rounded-pill" onClick={handleDelete}>Delete</Button>
+            <Button variant="danger" className="w-100 rounded-pill" onClick={handleDelete} disabled={actionLoading}>
+              {actionLoading ? <Spinner animation="border" size="sm" /> : 'Confirm'}
+            </Button>
           </div>
         </Modal.Body>
       </Modal>

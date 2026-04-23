@@ -74,6 +74,41 @@ public class ScheduleController {
     }
 
     /**
+     * Update availability for the currently logged-in doctor
+     * Only DOCTOR role can access this endpoint
+     */
+    @PutMapping("/{scheduleId}")
+    @PreAuthorize("hasRole('DOCTOR')")
+    public ResponseEntity<Map<String, Object>> updateAvailability(
+            @PathVariable Long scheduleId,
+            @RequestBody AddAvailabilityRequest request) {
+        try {
+            Long doctorId = getCurrentDoctorId();
+
+            Schedule schedule = scheduleService.updateAvailability(scheduleId, doctorId, request);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Availability updated successfully");
+            response.put("scheduleId", schedule.getScheduleId());
+            response.put("startTime", schedule.getStartTime());
+            response.put("endTime", schedule.getEndTime());
+
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        } catch (IllegalArgumentException e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Validation Error");
+            errorResponse.put("message", e.getMessage());
+            return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            logger.error("Error updating availability: ", e);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Internal Server Error");
+            errorResponse.put("message", e.getMessage());
+            return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
      * Get available slots for a specific doctor
      * Any authenticated user can view availability
      */
@@ -103,6 +138,9 @@ public class ScheduleController {
             Long doctorId = getCurrentDoctorId();
             List<ScheduleResponse> schedules = scheduleService.getDoctorSchedules(doctorId);
             return new ResponseEntity<>(schedules, HttpStatus.OK);
+        } catch (com.healthcare.appointment.exception.ResourceNotFoundException e) {
+            logger.warn("Authenticated doctor not found while getting schedules", e);
+            return new ResponseEntity<>(List.of(), HttpStatus.OK);
         } catch (IllegalArgumentException e) {
             logger.error("Validation error fetching schedules: ", e);
             Map<String, Object> errorResponse = new HashMap<>();

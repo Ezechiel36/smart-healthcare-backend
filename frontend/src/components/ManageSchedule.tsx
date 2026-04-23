@@ -27,10 +27,12 @@ const ManageSchedule: React.FC = () => {
   const fetchSchedules = async () => {
     try {
       setLoading(true);
+      setError('');
       const res = await scheduleAPI.getMySchedules();
-      setSchedules(res.data);
+      setSchedules(Array.isArray(res.data) ? res.data : []);
     } catch (err: any) {
       setError('Could not load your schedules.');
+      setSchedules([]);
     } finally {
       setLoading(false);
     }
@@ -66,7 +68,7 @@ const ManageSchedule: React.FC = () => {
       setShowModal(false);
       setEditingId(null);
       setNewSlot({ startTime: '', endTime: '' });
-      fetchSchedules();
+      await fetchSchedules();
     } catch (err: any) {
       alert('Error: ' + (err.response?.data?.message || err.message));
     } finally {
@@ -78,7 +80,7 @@ const ManageSchedule: React.FC = () => {
     if (!window.confirm('Delete this availability?')) return;
     try {
       await scheduleAPI.deleteSchedule(id);
-      fetchSchedules();
+      await fetchSchedules();
     } catch (err: any) {
       alert('Delete failed: ' + (err.response?.data?.message || err.message));
     }

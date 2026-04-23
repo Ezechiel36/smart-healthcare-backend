@@ -20,6 +20,7 @@ interface Appointment {
 const PatientAppointments: React.FC = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
   const [error, setError] = useState('');
   
   useEffect(() => {
@@ -29,10 +30,12 @@ const PatientAppointments: React.FC = () => {
   const fetchAppointments = async () => {
     try {
       setLoading(true);
+      setError('');
       const res = await appointmentAPI.getDoctorAppointments();
-      setAppointments(res.data);
+      setAppointments(Array.isArray(res.data) ? res.data : []);
     } catch (err: any) {
       setError('Failed to load patient appointments.');
+      setAppointments([]);
     } finally {
       setLoading(false);
     }
@@ -40,13 +43,18 @@ const PatientAppointments: React.FC = () => {
 
   const handleUpdateStatus = async (id: number, status: string) => {
     try {
+      setActionLoadingId(id);
       await appointmentAPI.updateAppointmentStatus(id, { status });
-      fetchAppointments();
+      await fetchAppointments();
       alert('Status updated to ' + status);
     } catch (err: any) {
       alert('Update failed: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setActionLoadingId(null);
     }
   };
+
+  const canCancelAppointment = (status: string) => !['COMPLETED', 'CANCELED', 'NO_SHOW'].includes(status.toUpperCase());
 
   const getBadgeVariant = (status: string) => {
     switch (status.toUpperCase()) {
@@ -68,7 +76,7 @@ const PatientAppointments: React.FC = () => {
         <p className="text-muted">Manage your patient visits and update their status</p>
       </div>
 
-      {error && <Alert variant="danger">{error}</Alert>}
+      {error && <Alert variant="danger" dismissible onClose={() => setError('')}>{error}</Alert>}
 
       <Card className="border-0 shadow-sm">
         <Card.Body className="p-0">
@@ -103,24 +111,26 @@ const PatientAppointments: React.FC = () => {
                         </Badge>
                       </td>
                       <td className="px-4 py-3 text-end">
-                        {apt.status === 'PENDING' && (
+                        {apt.status?.toUpperCase() === 'PENDING' && (
                           <>
                             <Button 
                               variant="primary" 
                               size="sm" 
                               className="me-2"
+                              disabled={actionLoadingId === apt.appointmentId}
                               onClick={() => handleUpdateStatus(apt.appointmentId, 'CONFIRMED')}
                             >
                               Confirm
                             </Button>
                           </>
                         )}
-                        {apt.status === 'CONFIRMED' && (
+                        {apt.status?.toUpperCase() === 'CONFIRMED' && (
                           <>
                             <Button 
                               variant="success" 
                               size="sm" 
                               className="me-2"
+                              disabled={actionLoadingId === apt.appointmentId}
                               onClick={() => handleUpdateStatus(apt.appointmentId, 'COMPLETED')}
                             >
                               Complete
@@ -129,6 +139,7 @@ const PatientAppointments: React.FC = () => {
                               variant="danger" 
                               size="sm"
                               className="me-2"
+                              disabled={actionLoadingId === apt.appointmentId}
                               onClick={() => handleUpdateStatus(apt.appointmentId, 'NO_SHOW')}
                             >
                               No Show
@@ -138,14 +149,18 @@ const PatientAppointments: React.FC = () => {
                         <Button 
                           variant="outline-danger" 
                           size="sm"
+                          disabled={!canCancelAppointment(apt.status) || actionLoadingId === apt.appointmentId}
                           onClick={async () => {
                             if(window.confirm('Are you sure you want to delete this appointment?')) {
                               try {
+                                setActionLoadingId(apt.appointmentId);
                                 await appointmentAPI.cancelAppointment(apt.appointmentId);
-                                fetchAppointments();
+                                await fetchAppointments();
                                 alert('Appointment deleted/canceled.');
                               } catch (err: any) {
                                 alert('Delete failed: ' + (err.response?.data?.message || err.message));
+                              } finally {
+                                setActionLoadingId(null);
                               }
                             }
                           }}

@@ -60,6 +60,50 @@ public class ScheduleService {
     }
 
     /**
+     * Update an availability slot for a doctor.
+     * The slot must belong to the doctor, must not already be booked,
+     * and must not overlap with another slot.
+     *
+     * @param scheduleId Schedule ID
+     * @param doctorId Doctor ID
+     * @param request Updated availability request
+     * @return Updated schedule
+     */
+    @Transactional
+    public Schedule updateAvailability(Long scheduleId, Long doctorId, AddAvailabilityRequest request) {
+        Schedule schedule = scheduleRepository.findById(scheduleId)
+                .orElseThrow(() -> new ResourceNotFoundException("Schedule not found with ID: " + scheduleId));
+
+        if (!schedule.getDoctor().getDoctorId().equals(doctorId)) {
+            throw new IllegalArgumentException("Schedule does not belong to the specified doctor");
+        }
+
+        if (schedule.getIsBooked()) {
+            throw new IllegalArgumentException("Cannot update a booked schedule");
+        }
+
+        if (request.getStartTime() == null || request.getEndTime() == null) {
+            throw new IllegalArgumentException("Start time and end time are required");
+        }
+
+        if (!request.getEndTime().isAfter(request.getStartTime())) {
+            throw new IllegalArgumentException("End time must be after start time");
+        }
+
+        long overlappingCount = scheduleRepository.countOverlappingSchedules(
+                doctorId, request.getStartTime(), request.getEndTime(), scheduleId);
+
+        if (overlappingCount > 0) {
+            throw new IllegalArgumentException("Time slot overlaps with existing availability");
+        }
+
+        schedule.setStartTime(request.getStartTime());
+        schedule.setEndTime(request.getEndTime());
+
+        return scheduleRepository.save(schedule);
+    }
+
+    /**
      * Get all available (unbooked) slots for a doctor
      *
      * @param doctorId Doctor ID

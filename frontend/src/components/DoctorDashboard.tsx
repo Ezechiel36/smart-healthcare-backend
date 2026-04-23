@@ -49,15 +49,57 @@ const DoctorDashboard: React.FC = () => {
         return;
       }
       
-      const [appointmentsRes, schedulesRes, notificationsRes] = await Promise.all([
-        appointmentAPI.getDoctorAppointments(),
-        scheduleAPI.getMySchedules(),
-        notificationAPI.getMyNotifications(),
-      ]);
+      let appointmentsData: any[] = [];
+      let schedulesData: any[] = [];
+      let notificationsData: any[] = [];
+      const errorMessages: string[] = [];
 
-      setAppointments(appointmentsRes.data);
-      setSchedules(schedulesRes.data);
-      setNotifications(notificationsRes.data);
+      try {
+        const appointmentsRes = await appointmentAPI.getDoctorAppointments();
+        appointmentsData = Array.isArray(appointmentsRes.data) ? appointmentsRes.data : [];
+      } catch (err: any) {
+        errorMessages.push('appointments');
+        if (err.response?.status === 401 || err.response?.status === 403) {
+          setError('Session expired. Please log in again.');
+          removeAuthToken();
+          navigate('/login');
+          return;
+        }
+      }
+
+      try {
+        const schedulesRes = await scheduleAPI.getMySchedules();
+        schedulesData = Array.isArray(schedulesRes.data) ? schedulesRes.data : [];
+      } catch (err: any) {
+        errorMessages.push('schedules');
+        if (err.response?.status === 401 || err.response?.status === 403) {
+          setError('Session expired. Please log in again.');
+          removeAuthToken();
+          navigate('/login');
+          return;
+        }
+      }
+
+      try {
+        const notificationsRes = await notificationAPI.getMyNotifications();
+        notificationsData = Array.isArray(notificationsRes.data) ? notificationsRes.data : [];
+      } catch (err: any) {
+        errorMessages.push('notifications');
+        if (err.response?.status === 401 || err.response?.status === 403) {
+          setError('Session expired. Please log in again.');
+          removeAuthToken();
+          navigate('/login');
+          return;
+        }
+      }
+
+      setAppointments(appointmentsData);
+      setSchedules(schedulesData);
+      setNotifications(notificationsData);
+
+      if (errorMessages.length > 0) {
+        setError(`Some data (${errorMessages.join(', ')}) could not be loaded. Showing available data.`);
+      }
     } catch (err: any) {
       console.error('Doctor dashboard data loading error:', err);
       
@@ -84,7 +126,7 @@ const DoctorDashboard: React.FC = () => {
 
     try {
       await scheduleAPI.deleteSchedule(scheduleId);
-      fetchDashboardData(); // Refresh data
+      await fetchDashboardData();
       alert('Schedule deleted successfully!');
     } catch (err: any) {
       alert('Failed to delete schedule: ' + err.response?.data?.message);
@@ -94,7 +136,7 @@ const DoctorDashboard: React.FC = () => {
   const handleUpdateAppointmentStatus = async (appointmentId: number, status: string) => {
     try {
       await appointmentAPI.updateAppointmentStatus(appointmentId, { status });
-      fetchDashboardData(); // Refresh data
+      await fetchDashboardData();
       alert('Appointment status updated successfully!');
     } catch (err: any) {
       alert('Failed to update appointment status: ' + err.response?.data?.message);
