@@ -126,4 +126,25 @@ public class UserService {
     public boolean validatePassword(String rawPassword, String encodedPassword) {
         return passwordEncoder.matches(rawPassword, encodedPassword);
     }
+
+    /**
+     * Get all users
+     *
+     * @return List of all users
+     */
+    public java.util.List<User> getAllUsers() {
+        return userRepository.findAll();
+    }
+
+    /**
+     * Delete a user by ID
+     *
+     * @param userId User ID to delete
+     */
+    public void deleteUser(Long userId) {
+        if (!userRepository.existsById(userId)) {
+            throw new ResourceNotFoundException("User not found with ID: " + userId);
+        }
+        userRepository.deleteById(userId);
+    }
 }

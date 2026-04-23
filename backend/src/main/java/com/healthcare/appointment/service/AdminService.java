@@ -1,6 +1,8 @@
 package com.healthcare.appointment.service;
 
+import com.healthcare.appointment.exception.ResourceNotFoundException;
 import com.healthcare.appointment.model.AppointmentStatus;
+import com.healthcare.appointment.model.Doctor;
 import com.healthcare.appointment.repository.AppointmentRepository;
 import com.healthcare.appointment.repository.DoctorRepository;
 import com.healthcare.appointment.repository.PatientRepository;
@@ -8,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -95,5 +98,28 @@ public class AdminService {
         breakdown.put("completed", appointmentRepository.countByStatus(AppointmentStatus.COMPLETED));
         breakdown.put("noShow", appointmentRepository.countByStatus(AppointmentStatus.NO_SHOW));
         return breakdown;
+    }
+
+    /**
+     * Get all pending doctors (not yet approved)
+     *
+     * @return List of pending doctors
+     */
+    public List<Doctor> getPendingDoctors() {
+        return doctorRepository.findByApproved(false);
+    }
+
+    /**
+     * Update doctor approval status
+     *
+     * @param doctorId Doctor ID
+     * @param approved Approval status
+     * @return Updated Doctor
+     */
+    public Doctor updateDoctorApproval(Long doctorId, boolean approved) {
+        Doctor doctor = doctorRepository.findById(doctorId)
+                .orElseThrow(() -> new ResourceNotFoundException("Doctor not found with ID: " + doctorId));
+        doctor.setApproved(approved);
+        return doctorRepository.save(doctor);
     }
 }
