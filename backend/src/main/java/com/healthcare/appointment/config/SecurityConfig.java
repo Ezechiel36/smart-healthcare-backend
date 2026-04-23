@@ -43,8 +43,8 @@ public class SecurityConfig {
                         // Patient endpoints - PATIENT or ADMIN
                         .requestMatchers("/api/patients/**").hasAnyRole("PATIENT", "ADMIN")
 
-                        // Doctor endpoints - DOCTOR or ADMIN
-                        .requestMatchers("/api/doctors/**").hasAnyRole("DOCTOR", "ADMIN")
+                        // Doctor endpoints - All authenticated users can view doctors, only doctors can manage
+                        .requestMatchers("/api/doctors", "/api/doctors/*").authenticated()
 
                         // Admin endpoints - ADMIN only
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
