@@ -79,7 +79,8 @@ public class SecurityConfig {
 
                         // Appointment endpoints
                         .requestMatchers("/api/appointments/book", "/api/appointments/my-appointments").hasRole("PATIENT")
-                        .requestMatchers("/api/appointments/doctor-appointments", "/api/appointments/**/status").hasRole("DOCTOR")
+                        .requestMatchers("/api/appointments/doctor-appointments").hasRole("DOCTOR")
+                        .requestMatchers("/api/appointments/*/status").hasRole("DOCTOR")
                         .requestMatchers("/api/appointments/**").authenticated()
 
                         // All other requests require authentication
