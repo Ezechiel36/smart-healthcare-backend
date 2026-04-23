@@ -65,6 +65,7 @@ public class ScheduleService {
      * @param doctorId Doctor ID
      * @return List of available schedule responses
      */
+    @Transactional(readOnly = true)
     public List<ScheduleResponse> getAvailableSlots(Long doctorId) {
         // Validate that doctor exists
         Doctor doctor = doctorRepository.findById(doctorId)
@@ -117,6 +118,7 @@ public class ScheduleService {
      * @param doctorId Doctor ID
      * @return List of all schedule responses for the doctor
      */
+    @Transactional(readOnly = true)
     public List<ScheduleResponse> getDoctorSchedules(Long doctorId) {
         // Validate that doctor exists
         Doctor doctor = doctorRepository.findById(doctorId)

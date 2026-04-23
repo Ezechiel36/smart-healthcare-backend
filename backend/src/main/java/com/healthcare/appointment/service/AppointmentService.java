@@ -138,6 +138,7 @@ public class AppointmentService {
      * @param patientId Patient ID
      * @return List of appointment responses
      */
+    @Transactional(readOnly = true)
     public List<AppointmentResponse> getPatientAppointments(Long patientId) {
         // Validate that patient exists
         Patient patient = patientRepository.findById(patientId)
@@ -169,6 +170,7 @@ public class AppointmentService {
      * @param doctorId Doctor ID
      * @return List of appointment responses
      */
+    @Transactional(readOnly = true)
     public List<AppointmentResponse> getDoctorAppointments(Long doctorId) {
         // Validate that doctor exists
         Doctor doctor = doctorRepository.findById(doctorId)

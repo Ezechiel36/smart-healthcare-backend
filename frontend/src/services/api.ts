@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Base URL for the backend API
-const API_BASE_URL ='https://smart-healthcare-backend-2oqk.onrender.com/api';
+const API_BASE_URL = 'https://smart-healthcare-backend-2oqk.onrender.com/api';
 
 // Create axios instance with default config
 const api = axios.create({
@@ -86,7 +86,7 @@ export const adminAPI = {
   getUsers: () => api.get('/admin/users'),
   deleteUser: (id: number) => api.delete(`/admin/users/${id}`),
   getPendingDoctors: () => api.get('/admin/doctors/pending'),
-  updateDoctorApproval: (id: number, approved: boolean) => 
+  updateDoctorApproval: (id: number, approved: boolean) =>
     api.put(`/admin/doctors/${id}/approval`, { approved }),
 };
 

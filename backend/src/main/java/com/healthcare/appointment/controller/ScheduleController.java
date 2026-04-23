@@ -15,7 +15,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.List;
@@ -24,6 +27,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/schedules")
 public class ScheduleController {
+
+    private static final Logger logger = LoggerFactory.getLogger(ScheduleController.class);
 
     @Autowired
     private ScheduleService scheduleService;
@@ -59,6 +64,12 @@ public class ScheduleController {
             errorResponse.put("error", "Validation Error");
             errorResponse.put("message", e.getMessage());
             return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            logger.error("Error adding availability: ", e);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Internal Server Error");
+            errorResponse.put("message", e.getMessage());
+            return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -86,10 +97,25 @@ public class ScheduleController {
      */
     @GetMapping("/my-schedules")
     @PreAuthorize("hasRole('DOCTOR')")
-    public ResponseEntity<List<ScheduleResponse>> getMySchedules() {
-        Long doctorId = getCurrentDoctorId();
-        List<ScheduleResponse> schedules = scheduleService.getDoctorSchedules(doctorId);
-        return new ResponseEntity<>(schedules, HttpStatus.OK);
+    @Transactional(readOnly = true)
+    public ResponseEntity<?> getMySchedules() {
+        try {
+            Long doctorId = getCurrentDoctorId();
+            List<ScheduleResponse> schedules = scheduleService.getDoctorSchedules(doctorId);
+            return new ResponseEntity<>(schedules, HttpStatus.OK);
+        } catch (IllegalArgumentException e) {
+            logger.error("Validation error fetching schedules: ", e);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Validation Error");
+            errorResponse.put("message", e.getMessage());
+            return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            logger.error("Error fetching doctor schedules: ", e);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to get schedules");
+            errorResponse.put("message", e.getMessage());
+            return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     /**
@@ -115,6 +141,12 @@ public class ScheduleController {
             errorResponse.put("error", "Validation Error");
             errorResponse.put("message", e.getMessage());
             return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            logger.error("Error deleting availability: ", e);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Internal Server Error");
+            errorResponse.put("message", e.getMessage());
+            return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
