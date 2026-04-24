@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, Table, Badge, Button, Alert, Spinner } from 'react-bootstrap';
+import { Card, Alert } from 'react-bootstrap';
 import { getUser, removeAuthToken, appointmentAPI, notificationAPI } from '../services/api';
 import PatientSidebar from './PatientSidebar';
 import PatientNavbar from './PatientNavbar';
@@ -111,10 +111,6 @@ const Dashboard: React.FC = () => {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
-  const nextAppointment = appointments.find(a => 
-    new Date(a.startTime).getTime() > Date.now() && a.status === 'CONFIRMED'
-  );
-
   if (loading) return (
     <div className="dashboard-wrapper">
       <PatientSidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
@@ -167,22 +163,6 @@ const Dashboard: React.FC = () => {
                   </Card.Body>
                 </Card>
 
-                <Card className="stat-card patients">
-                  <Card.Body>
-                    <div className="stat-icon-wrapper">
-                      <div className="stat-icon">👨‍⚕️</div>
-                    </div>
-                    <div className="stat-content">
-                      <div className="stat-number">{nextAppointment ? '1' : '0'}</div>
-                      <div className="stat-label">Upcoming</div>
-                    </div>
-                    <div className="stat-trend positive">
-                      <span className="trend-icon">↑</span>
-                      <span className="trend-value">Next visit</span>
-                    </div>
-                  </Card.Body>
-                </Card>
-
                 <Card className="stat-card doctors">
                   <Card.Body>
                     <div className="stat-icon-wrapper">
@@ -203,74 +183,28 @@ const Dashboard: React.FC = () => {
 
             <div className="status-section">
               <div className="section-header">
-                <h2 className="section-title">Next Appointment</h2>
-                <p className="section-subtitle">Your upcoming scheduled visit</p>
+                <h2 className="section-title">Notifications</h2>
+                <p className="section-subtitle">Latest updates and alerts</p>
               </div>
               <Card className="status-card">
                 <Card.Body>
-                  {nextAppointment ? (
-                    <div className="d-flex align-items-center gap-4">
-                      <div className="status-icon">📅</div>
-                      <div className="status-info">
-                        <div className="status-count">Check-up</div>
-                        <div className="status-label">with Dr. {nextAppointment.doctorName}</div>
-                      </div>
-                      <div className="ms-auto text-end">
-                        <div className="fw-bold">{new Date(nextAppointment.startTime).toLocaleDateString()}</div>
-                        <div className="text-muted small">{new Date(nextAppointment.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-center py-4 text-muted">
-                      <div className="display-4 mb-2 opacity-50">📅</div>
-                      <p>No upcoming appointments scheduled.</p>
-                      <Button variant="primary" onClick={() => navigate('/book-appointment')} className="mt-3">Book Now</Button>
-                    </div>
-                  )}
-                </Card.Body>
-              </Card>
-            </div>
-
-            <div className="status-section">
-              <div className="section-header">
-                <h2 className="section-title">Recent Activity</h2>
-                <p className="section-subtitle">Your latest appointments</p>
-              </div>
-              <Card className="status-card">
-                <Card.Body className="p-0">
-                  {appointments.length === 0 ? (
+                  {notifications.length === 0 ? (
                     <div className="text-center py-5 text-muted">
-                      No appointments found. Book your first appointment!
+                      <div className="notification-empty-icon">🔔</div>
+                      <p>No notifications at this time.</p>
                     </div>
                   ) : (
-                    <div className="table-responsive">
-                      <Table hover className="mb-0">
-                        <thead className="bg-light">
-                          <tr>
-                            <th className="px-4 py-3">Doctor</th>
-                            <th className="px-4 py-3">Date</th>
-                            <th className="px-4 py-3">Status</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {appointments.slice(0, 5).map((apt) => (
-                            <tr key={apt.appointmentId}>
-                              <td className="px-4 py-3">
-                                <div className="fw-bold">Dr. {apt.doctorName}</div>
-                                <div className="text-muted small">{apt.specialization}</div>
-                              </td>
-                              <td className="px-4 py-3">
-                                {new Date(apt.startTime).toLocaleDateString()}
-                              </td>
-                              <td className="px-4 py-3">
-                                <Badge bg={apt.status === 'CONFIRMED' ? 'success' : apt.status === 'CANCELED' ? 'danger' : 'warning'} className="rounded-pill">
-                                  {apt.status}
-                                </Badge>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </Table>
+                    <div className="notification-list">
+                      {notifications.slice(0, 5).map((notification) => (
+                        <div key={notification.notificationId} className="notification-item">
+                          <div className="notification-icon">
+                            🔔
+                          </div>
+                          <div className="notification-content">
+                            <div className="notification-message">{notification.message}</div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </Card.Body>

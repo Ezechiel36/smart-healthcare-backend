@@ -1,59 +1,128 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button, Container, Row, Col } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import './LandingPage.css';
 
 const LandingPage: React.FC = () => {
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  const slides = [
+    {
+      id: 1,
+      image: 'https://images.unsplash.com/photo-1631217868264-e5b90bb7e133?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80',
+      title: 'Smart Healthcare',
+      subtitle: 'Appointment System',
+      description: 'Book appointments with top doctors seamlessly. Manage your healthcare journey with our modern, secure, and easy-to-use platform.',
+      gradient: 'linear-gradient(135deg, rgba(102, 126, 234, 0.9) 0%, rgba(118, 75, 162, 0.9) 100%)'
+    },
+    {
+      id: 2,
+      image: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80',
+      title: 'Expert Doctors',
+      subtitle: 'At Your Fingertips',
+      description: 'Connect with certified healthcare professionals across various specializations. Get the care you deserve.',
+      gradient: 'linear-gradient(135deg, rgba(51, 172, 170, 0.9) 0%, rgba(0, 150, 136, 0.9) 100%)'
+    },
+    {
+      id: 3,
+      image: 'https://images.unsplash.com/photo-1551076805-e1869033e561?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80',
+      title: '24/7 Healthcare',
+      subtitle: 'Always Available',
+      description: 'Access your appointments and health records anytime, anywhere. Your health, your schedule, your control.',
+      gradient: 'linear-gradient(135deg, rgba(255, 112, 67, 0.9) 0%, rgba(255, 87, 34, 0.9) 100%)'
+    }
+  ];
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % slides.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [slides.length]);
+
+  const nextSlide = () => {
+    setCurrentSlide((prev) => (prev + 1) % slides.length);
+  };
+
+  const prevSlide = () => {
+    setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
+  };
+
+  const goToSlide = (index: number) => {
+    setCurrentSlide(index);
+  };
+
   return (
     <div className="landing-page">
-      {/* Hero Section */}
+      {/* Hero Section with Sliding Images */}
       <section className="hero-section">
-        <div className="hero-background">
-          <div className="floating-shape shape-1"></div>
-          <div className="floating-shape shape-2"></div>
-          <div className="floating-shape shape-3"></div>
-        </div>
-        <Container className="hero-content">
-          <Row className="align-items-center min-vh-100">
-            <Col lg={6} className="hero-text">
-              <h1 className="hero-title animate-fade-in">
-                Smart Healthcare
-                <span className="gradient-text"> Appointment System</span>
-              </h1>
-              <p className="hero-subtitle animate-slide-up">
-                Book appointments with top doctors seamlessly. Manage your healthcare journey with our modern, secure, and easy-to-use platform.
-              </p>
-              <div className="hero-buttons animate-slide-up">
-                <Link to="/login">
-                  <Button variant="primary" size="lg" className="hero-btn btn-animate">
-                    Login
-                  </Button>
-                </Link>
-                <Link to="/register">
-                  <Button variant="outline-light" size="lg" className="hero-btn btn-animate">
-                    Register
-                  </Button>
-                </Link>
-              </div>
-            </Col>
-            <Col lg={6} className="hero-image">
-              <div className="illustration animate-float">
-                <div className="doctor-card">
-                  <div className="doctor-avatar">
-                    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <circle cx="50" cy="50" r="45" fill="#e3f2fd"/>
-                      <circle cx="50" cy="40" r="20" fill="#2196f3"/>
-                      <path d="M20 85 Q50 60 80 85" fill="#2196f3"/>
-                      <rect x="35" y="20" width="30" height="25" rx="5" fill="#1976d2"/>
-                      <circle cx="50" cy="32" r="8" fill="#bbdefb"/>
-                    </svg>
+        <div className="slider-container">
+          {slides.map((slide, index) => (
+            <div
+              key={slide.id}
+              className={`slide ${index === currentSlide ? 'active' : ''}`}
+              style={{
+                backgroundImage: `url(${slide.image})`,
+                opacity: index === currentSlide ? 1 : 0
+              }}
+            >
+              <div className="slide-overlay" style={{ background: slide.gradient }}></div>
+            </div>
+          ))}
+          
+          <div className="slider-content">
+            <Container>
+              <Row className="align-items-center min-vh-100">
+                <Col lg={8} className="hero-text">
+                  <div className="slide-text">
+                    <h1 className="hero-title animate-fade-in">
+                      {slides[currentSlide].title}
+                      <span className="gradient-text"> {slides[currentSlide].subtitle}</span>
+                    </h1>
+                    <p className="hero-subtitle animate-slide-up">
+                      {slides[currentSlide].description}
+                    </p>
+                    <div className="hero-buttons animate-slide-up">
+                      <Link to="/login">
+                        <Button variant="light" size="lg" className="hero-btn btn-animate">
+                          Login
+                        </Button>
+                      </Link>
+                      <Link to="/register">
+                        <Button variant="outline-light" size="lg" className="hero-btn btn-animate">
+                          Register
+                        </Button>
+                      </Link>
+                    </div>
                   </div>
-                  <div className="pulse-ring"></div>
-                </div>
-              </div>
-            </Col>
-          </Row>
-        </Container>
+                </Col>
+              </Row>
+            </Container>
+          </div>
+
+          {/* Slider Controls */}
+          <button className="slider-control prev-btn" onClick={prevSlide}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+          </button>
+          <button className="slider-control next-btn" onClick={nextSlide}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </button>
+
+          {/* Slider Indicators */}
+          <div className="slider-indicators">
+            {slides.map((_, index) => (
+              <button
+                key={index}
+                className={`indicator ${index === currentSlide ? 'active' : ''}`}
+                onClick={() => goToSlide(index)}
+              ></button>
+            ))}
+          </div>
+        </div>
       </section>
 
       {/* Features Section */}

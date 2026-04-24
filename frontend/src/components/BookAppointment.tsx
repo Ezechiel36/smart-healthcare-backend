@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Button, Alert, Spinner, Row, Col, Modal, Form } from 'react-bootstrap';
+import { Card, Form, Button, Alert, Modal, Spinner } from 'react-bootstrap';
 import { scheduleAPI, appointmentAPI, doctorAPI } from '../services/api';
 import PatientSidebar from './PatientSidebar';
 import PatientNavbar from './PatientNavbar';

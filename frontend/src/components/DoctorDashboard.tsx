@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Card, Button, ListGroup, Badge, Alert, Spinner } from 'react-bootstrap';
+import { Card, Alert } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { appointmentAPI, scheduleAPI, notificationAPI, getUser, removeAuthToken } from '../services/api';
 import DoctorSidebar from './DoctorSidebar';
@@ -125,38 +125,6 @@ const DoctorDashboard: React.FC = () => {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
-  const handleDeleteSchedule = async (scheduleId: number) => {
-    if (!window.confirm('Are you sure you want to delete this schedule?')) return;
-
-    try {
-      await scheduleAPI.deleteSchedule(scheduleId);
-      await fetchDashboardData();
-      alert('Schedule deleted successfully!');
-    } catch (err: any) {
-      alert('Failed to delete schedule: ' + err.response?.data?.message);
-    }
-  };
-
-  const handleUpdateAppointmentStatus = async (appointmentId: number, status: string) => {
-    try {
-      await appointmentAPI.updateAppointmentStatus(appointmentId, { status });
-      await fetchDashboardData();
-      alert('Appointment status updated successfully!');
-    } catch (err: any) {
-      alert('Failed to update appointment status: ' + err.response?.data?.message);
-    }
-  };
-
-  const getStatusBadgeVariant = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'confirmed': return 'success';
-      case 'pending': return 'warning';
-      case 'completed': return 'info';
-      case 'canceled': return 'secondary';
-      case 'no_show': return 'danger';
-      default: return 'primary';
-    }
-  };
 
   if (loading) return (
     <div className="dashboard-wrapper">
@@ -350,9 +318,6 @@ const DoctorDashboard: React.FC = () => {
                           </div>
                           <div className="notification-content">
                             <div className="notification-message">{notification.message}</div>
-                            <div className="notification-time">
-                              {new Date(notification.timestamp).toLocaleString()}
-                            </div>
                           </div>
                         </div>
                       ))}

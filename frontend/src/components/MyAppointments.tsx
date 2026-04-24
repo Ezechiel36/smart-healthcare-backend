@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Table, Badge, Button, Spinner, Alert } from 'react-bootstrap';
+import { Card, Table, Badge, Button, Alert } from 'react-bootstrap';
 import { appointmentAPI } from '../services/api';
 import PatientSidebar from './PatientSidebar';
 import PatientNavbar from './PatientNavbar';
