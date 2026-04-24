@@ -161,8 +161,8 @@ public class UserService {
         });
 
         doctorRepository.findByUser_UserId(userId).ifPresent(doctor -> {
-            appointmentRepository.deleteByDoctor_DoctorId(doctor.getDoctorId());
             scheduleRepository.deleteByDoctor_DoctorId(doctor.getDoctorId());
+            appointmentRepository.deleteByDoctor_DoctorId(doctor.getDoctorId());
             doctorRepository.delete(doctor);
         });
 

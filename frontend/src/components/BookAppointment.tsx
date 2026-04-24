@@ -51,7 +51,9 @@ const BookAppointment: React.FC = () => {
       setSlotsLoading(true);
       const res = await scheduleAPI.getAvailableSlots(Number(selectedDoctorId));
       const now = new Date();
-      const futureSlots = res.data.filter((slot: AvailableSlot) => new Date(slot.startTime) > now);
+      const futureSlots = res.data.filter((slot: AvailableSlot) => 
+        new Date(slot.startTime) > now && !slot.isBooked
+      );
       setAvailableSlots(futureSlots);
     } catch (err) {
       setError('Error retrieving time slots.');
