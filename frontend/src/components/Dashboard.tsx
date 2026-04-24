@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Card, Button, Badge, Alert, Spinner, Row, Col, Container } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
-import { appointmentAPI, notificationAPI, getUser, removeAuthToken } from '../services/api';
+import { Card, Table, Badge, Button, Alert, Spinner } from 'react-bootstrap';
+import { getUser, removeAuthToken, appointmentAPI, notificationAPI } from '../services/api';
+import PatientSidebar from './PatientSidebar';
+import PatientNavbar from './PatientNavbar';
+import './PatientDashboard.css';
 
 interface Appointment {
   appointmentId: number;
@@ -23,6 +26,7 @@ const Dashboard: React.FC = () => {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   
   const user = getUser();
   const navigate = useNavigate();
@@ -112,140 +116,170 @@ const Dashboard: React.FC = () => {
   );
 
   if (loading) return (
-    <div className="text-center p-5">
-      <Spinner animation="grow" variant="primary" />
-      <p className="mt-3 text-muted">Preparing your wellness overview...</p>
+    <div className="dashboard-wrapper">
+      <PatientSidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
+      <PatientNavbar onSidebarToggle={() => setSidebarOpen(!sidebarOpen)} />
+      <div className="dashboard-container">
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+          <div className="loading-text">Preparing your wellness overview...</div>
+        </div>
+      </div>
     </div>
   );
 
   return (
-    <Container fluid className="py-4">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <div>
-          <h2 className="fw-bold mb-1">Hello, {user?.name}! 👋</h2>
-          <p className="text-muted">Welcome back to your healthcare portal.</p>
-        </div>
-      </div>
+    <div className="dashboard-wrapper">
+      <PatientSidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
+      <PatientNavbar onSidebarToggle={() => setSidebarOpen(!sidebarOpen)} />
+      
+      <div className="dashboard-container">
+        <div className="dashboard-content">
+          <div className="dashboard-header">
+            <h1 className="dashboard-title">Welcome back, {user?.name || 'Patient'}</h1>
+            <p className="dashboard-subtitle">Your personalized health dashboard</p>
+          </div>
 
-      {error && (
-        <Alert variant="danger" dismissible className="d-flex align-items-center justify-content-between">
-          <div>{error}</div>
-          <Button 
-            variant="outline-danger" 
-            size="sm" 
-            onClick={fetchDashboardData}
-            className="ms-3"
-          >
-            Retry
-          </Button>
-        </Alert>
-      )}
+          {error && (
+            <Alert variant="warning" dismissible onClose={() => setError('')}>{error}</Alert>
+          )}
 
-      <Row className="g-4 mb-4">
-        <Col md={4}>
-          <Card className="border-0 shadow-sm rounded-4 bg-primary text-white p-3 h-100">
-            <Card.Body className="d-flex flex-column justify-content-between">
-              <div>
-                <span className="opacity-75 small fw-bold text-uppercase ls-1">TOTAL VISITS</span>
-                <h2 className="display-4 fw-bold mt-2 mb-0">{appointments.length}</h2>
+          <div className="dashboard-grid">
+            <div className="stats-section">
+              <div className="section-header">
+                <h2 className="section-title">Overview</h2>
+                <p className="section-subtitle">Your health at a glance</p>
               </div>
-              <div className="mt-4 small opacity-75">Your complete medical journey history</div>
-            </Card.Body>
-          </Card>
-        </Col>
-        
-        <Col md={8}>
-          <Card className="border-0 shadow-sm rounded-4 h-100">
-            <Card.Body className="p-4 d-flex align-items-center">
-              {nextAppointment ? (
-                <div className="w-100">
-                   <div className="d-flex justify-content-between align-items-center mb-3">
-                     <span className="badge bg-success bg-opacity-10 text-success rounded-pill px-3 py-2">UPCOMING VISIT</span>
-                     <span className="text-muted small">{new Date(nextAppointment.startTime).toLocaleDateString()}</span>
-                   </div>
-                   <h4 className="fw-bold mb-2">Check-up with Dr. {nextAppointment.doctorName}</h4>
-                   <p className="text-muted mb-0">
-                     <span className="me-3">👨‍⚕️ {nextAppointment.specialization}</span>
-                     <span>🕒 {new Date(nextAppointment.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                   </p>
-                </div>
-              ) : (
-                <div className="text-center w-100 py-4 opacity-50">
-                  <div className="display-4 mb-2">📅</div>
-                  <p className="mb-0">No upcoming appointments scheduled.</p>
-                </div>
-              )}
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
+              <div className="stats-grid">
+                <Card className="stat-card appointments">
+                  <Card.Body>
+                    <div className="stat-icon-wrapper">
+                      <div className="stat-icon">📅</div>
+                    </div>
+                    <div className="stat-content">
+                      <div className="stat-number">{appointments.length}</div>
+                      <div className="stat-label">Total Visits</div>
+                    </div>
+                    <div className="stat-trend neutral">
+                      <span className="trend-icon">→</span>
+                      <span className="trend-value">All time</span>
+                    </div>
+                  </Card.Body>
+                </Card>
 
-      <Row className="g-4 border-top pt-4">
-        <Col lg={7}>
-           <Card className="border-0 bg-transparent">
-             <div className="d-flex justify-content-between align-items-center mb-3">
-               <h5 className="fw-bold mb-0">Recent Activity</h5>
-               <Button variant="link" onClick={() => navigate('/my-appointments')} className="text-decoration-none p-0">View All →</Button>
-             </div>
-             <div className="bg-white rounded-4 shadow-sm overflow-hidden">
-               {appointments.length === 0 ? (
-                 <div className="p-5 text-center text-muted">
-                   <div className="display-4 mb-3"> calendar</div>
-                   <h5 className="mb-2">No appointments yet</h5>
-                   <p className="mb-3">Book your first appointment to get started with your healthcare journey.</p>
-                   <Button variant="primary" onClick={() => navigate('/book-appointment')}>
-                     Book Appointment
-                   </Button>
-                 </div>
-               ) : (
-                 <div className="list-group list-group-flush">
-                   {appointments.slice(0, 4).map(apt => (
-                     <div key={apt.appointmentId} className="list-group-item p-3 border-light border-bottom-0">
-                       <Row className="align-items-center">
-                         <Col className="flex-grow-1">
-                           <div className="fw-bold">{apt.doctorName}</div>
-                           <small className="text-muted">{new Date(apt.startTime).toLocaleDateString()}</small>
-                         </Col>
-                         <Col xs="auto">
-                           <Badge bg={apt.status === 'CONFIRMED' ? 'success' : 'secondary'} className="px-2 py-1">
-                             {apt.status}
-                           </Badge>
-                         </Col>
-                       </Row>
-                     </div>
-                   ))}
-                 </div>
-               )}
-             </div>
-           </Card>
-        </Col>
+                <Card className="stat-card patients">
+                  <Card.Body>
+                    <div className="stat-icon-wrapper">
+                      <div className="stat-icon">👨‍⚕️</div>
+                    </div>
+                    <div className="stat-content">
+                      <div className="stat-number">{nextAppointment ? '1' : '0'}</div>
+                      <div className="stat-label">Upcoming</div>
+                    </div>
+                    <div className="stat-trend positive">
+                      <span className="trend-icon">↑</span>
+                      <span className="trend-value">Next visit</span>
+                    </div>
+                  </Card.Body>
+                </Card>
 
-        <Col lg={5}>
-          <Card className="border-0 bg-transparent">
-            <h5 className="fw-bold mb-3">Notifications</h5>
-            <div className="bg-white rounded-4 shadow-sm overflow-hidden">
-              {notifications.length === 0 ? (
-                <div className="p-5 text-center text-muted small">Stay tuned for updates here.</div>
-              ) : (
-                <div className="list-group list-group-flush">
-                  {notifications.slice(0, 5).map(note => (
-                    <div key={note.notificationId} className={`list-group-item p-3 border-light ${note.message.includes('confirmed') ? 'border-success border-2' : ''}`}>
-                      <div className="small mb-1">
-                        {note.message.includes('confirmed') && <span className="text-success me-1"> confirmed</span>}
-                        {note.message}
+                <Card className="stat-card doctors">
+                  <Card.Body>
+                    <div className="stat-icon-wrapper">
+                      <div className="stat-icon">🏥</div>
+                    </div>
+                    <div className="stat-content">
+                      <div className="stat-number">{notifications.length}</div>
+                      <div className="stat-label">Notifications</div>
+                    </div>
+                    <div className="stat-trend neutral">
+                      <span className="trend-icon">🔔</span>
+                      <span className="trend-value">Recent</span>
+                    </div>
+                  </Card.Body>
+                </Card>
+              </div>
+            </div>
+
+            <div className="status-section">
+              <div className="section-header">
+                <h2 className="section-title">Next Appointment</h2>
+                <p className="section-subtitle">Your upcoming scheduled visit</p>
+              </div>
+              <Card className="status-card">
+                <Card.Body>
+                  {nextAppointment ? (
+                    <div className="d-flex align-items-center gap-4">
+                      <div className="status-icon">📅</div>
+                      <div className="status-info">
+                        <div className="status-count">Check-up</div>
+                        <div className="status-label">with Dr. {nextAppointment.doctorName}</div>
                       </div>
-                      <div className="text-muted" style={{ fontSize: '10px' }}>
-                        {new Date(note.timestamp).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
+                      <div className="ms-auto text-end">
+                        <div className="fw-bold">{new Date(nextAppointment.startTime).toLocaleDateString()}</div>
+                        <div className="text-muted small">{new Date(nextAppointment.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
+                  ) : (
+                    <div className="text-center py-4 text-muted">
+                      <div className="display-4 mb-2 opacity-50">📅</div>
+                      <p>No upcoming appointments scheduled.</p>
+                      <Button variant="primary" onClick={() => navigate('/book-appointment')} className="mt-3">Book Now</Button>
+                    </div>
+                  )}
+                </Card.Body>
+              </Card>
             </div>
-          </Card>
-        </Col>
-      </Row>
-    </Container>
+
+            <div className="status-section">
+              <div className="section-header">
+                <h2 className="section-title">Recent Activity</h2>
+                <p className="section-subtitle">Your latest appointments</p>
+              </div>
+              <Card className="status-card">
+                <Card.Body className="p-0">
+                  {appointments.length === 0 ? (
+                    <div className="text-center py-5 text-muted">
+                      No appointments found. Book your first appointment!
+                    </div>
+                  ) : (
+                    <div className="table-responsive">
+                      <Table hover className="mb-0">
+                        <thead className="bg-light">
+                          <tr>
+                            <th className="px-4 py-3">Doctor</th>
+                            <th className="px-4 py-3">Date</th>
+                            <th className="px-4 py-3">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {appointments.slice(0, 5).map((apt) => (
+                            <tr key={apt.appointmentId}>
+                              <td className="px-4 py-3">
+                                <div className="fw-bold">Dr. {apt.doctorName}</div>
+                                <div className="text-muted small">{apt.specialization}</div>
+                              </td>
+                              <td className="px-4 py-3">
+                                {new Date(apt.startTime).toLocaleDateString()}
+                              </td>
+                              <td className="px-4 py-3">
+                                <Badge bg={apt.status === 'CONFIRMED' ? 'success' : apt.status === 'CANCELED' ? 'danger' : 'warning'} className="rounded-pill">
+                                  {apt.status}
+                                </Badge>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </Table>
+                    </div>
+                  )}
+                </Card.Body>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 

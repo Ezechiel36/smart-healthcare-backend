@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { adminAPI } from '../services/api';
+import AdminSidebar from './AdminSidebar';
+import AdminNavbar from './AdminNavbar';
+import './AdminDashboard.css';
 
 interface DashboardData {
   totalPatients: number;
@@ -18,6 +21,7 @@ const SystemAnalytics: React.FC = () => {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   
   const fetchData = useCallback(async () => {
     try {
@@ -25,7 +29,7 @@ const SystemAnalytics: React.FC = () => {
       setError('');
       const res = await adminAPI.getDashboard();
       setData(res.data);
-          } catch (err: any) {
+    } catch (err: any) {
       setError('Failed to load analytics data. Please try again.');
     } finally {
       setLoading(false);
@@ -77,7 +81,6 @@ const SystemAnalytics: React.FC = () => {
     ? Object.entries(data.appointmentStatusBreakdown)
     : [];
 
-  // Build donut segments
   const buildDonutSegments = () => {
     if (!data || totalStatusCount === 0) return null;
     const radius = 80;
@@ -108,235 +111,241 @@ const SystemAnalytics: React.FC = () => {
     });
   };
 
-  return (
-    <div style={styles.wrapper}>
-      {/* Header */}
-      <div style={styles.header}>
-        <div>
-          <h1 style={styles.title}>📊 System Analytics</h1>
-          <p style={styles.subtitle}>
-            Real-time overview of your healthcare platform metrics
-          </p>
-        </div>
-        <div style={styles.headerRight}>
+  if (loading) {
+    return (
+      <div className="dashboard-wrapper">
+        <AdminSidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
+        <AdminNavbar onSidebarToggle={() => setSidebarOpen(!sidebarOpen)} />
+        <div className="dashboard-container">
+          <div className="loading-container">
+            <div className="loading-spinner"></div>
+            <div className="loading-text">Loading analytics…</div>
+          </div>
         </div>
       </div>
+    );
+  }
 
-      {error && (
-        <div style={styles.errorBanner}>
-          ⚠️ {error}
-        </div>
-      )}
-
-      {loading && !data ? (
-        <div style={styles.loadingContainer}>
-          <div style={styles.spinner} />
-          <p style={styles.loadingText}>Loading analytics…</p>
-        </div>
-      ) : data ? (
-        <>
-          {/* Stat Cards */}
-          <div style={styles.statsGrid}>
-            <StatCard
-              icon="👥"
-              label="Total Patients"
-              value={data.totalPatients}
-              gradient="linear-gradient(135deg, #667eea, #764ba2)"
-              trend="+12% this month"
-            />
-            <StatCard
-              icon="🩺"
-              label="Total Doctors"
-              value={data.totalDoctors}
-              gradient="linear-gradient(135deg, #11998e, #38ef7d)"
-              trend="Active staff"
-            />
-            <StatCard
-              icon="📅"
-              label="Total Appointments"
-              value={data.totalAppointments}
-              gradient="linear-gradient(135deg, #f093fb, #f5576c)"
-              trend="All time"
-            />
-            <StatCard
-              icon="✅"
-              label="Completed"
-              value={data.appointmentStatusBreakdown.completed}
-              gradient="linear-gradient(135deg, #4facfe, #00f2fe)"
-              trend={
-                data.totalAppointments > 0
-                  ? `${Math.round((data.appointmentStatusBreakdown.completed / data.totalAppointments) * 100)}% success rate`
-                  : 'No appointments yet'
-              }
-            />
+  return (
+    <div className="dashboard-wrapper">
+      <AdminSidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
+      <AdminNavbar onSidebarToggle={() => setSidebarOpen(!sidebarOpen)} />
+      
+      <div className="dashboard-container">
+        <div className="dashboard-content">
+          <div className="dashboard-header">
+            <h1 className="dashboard-title">📊 System Analytics</h1>
+            <p className="dashboard-subtitle">
+              Real-time overview of your healthcare platform metrics
+            </p>
           </div>
 
-          {/* Charts Row */}
-          <div style={styles.chartsRow}>
-            {/* Donut Chart */}
-            <div style={styles.card}>
-              <h3 style={styles.cardTitle}>Appointment Distribution</h3>
-              {totalStatusCount === 0 ? (
-                <p style={styles.emptyText}>No appointment data yet.</p>
-              ) : (
-                <div style={styles.donutContainer}>
-                  <svg viewBox="0 0 200 200" width="200" height="200">
-                    {buildDonutSegments()}
-                    <circle cx="100" cy="100" r="62" fill="#1e293b" />
-                    <text
-                      x="100"
-                      y="95"
-                      textAnchor="middle"
-                      fill="#f8fafc"
-                      fontSize="22"
-                      fontWeight="bold"
-                    >
-                      {totalStatusCount}
-                    </text>
-                    <text
-                      x="100"
-                      y="115"
-                      textAnchor="middle"
-                      fill="#94a3b8"
-                      fontSize="11"
-                    >
-                      Total
-                    </text>
-                  </svg>
-                  <div style={styles.legend}>
-                    {statusEntries.map(([key, value]) => (
-                      <div key={key} style={styles.legendItem}>
-                        <span
-                          style={{
-                            ...styles.legendDot,
-                            backgroundColor: getStatusColor(key),
-                          }}
-                        />
-                        <span style={styles.legendLabel}>
-                          {getStatusIcon(key)} {getStatusLabel(key)}
-                        </span>
-                        <span style={styles.legendValue}>
-                          {value}{' '}
-                          <span style={styles.legendPercent}>
-                            ({totalStatusCount > 0 ? Math.round((value / totalStatusCount) * 100) : 0}%)
-                          </span>
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+          {error && (
+            <div className="error-alert">
+              ⚠️ {error}
             </div>
+          )}
 
-            {/* Bar Chart */}
-            <div style={styles.card}>
-              <h3 style={styles.cardTitle}>Status Breakdown</h3>
-              {totalStatusCount === 0 ? (
-                <p style={styles.emptyText}>No appointment data yet.</p>
-              ) : (
-                <div style={styles.barChartContainer}>
-                  {statusEntries.map(([key, value]) => {
-                    const percent =
-                      totalStatusCount > 0
-                        ? Math.round((value / totalStatusCount) * 100)
-                        : 0;
-                    return (
-                      <div key={key} style={styles.barRow}>
-                        <span style={styles.barLabel}>
-                          {getStatusIcon(key)} {getStatusLabel(key)}
-                        </span>
-                        <div style={styles.barTrack}>
-                          <div
+          {data ? (
+            <div className="dashboard-grid">
+              <div style={styles.statsGrid}>
+                <StatCard
+                  icon="👥"
+                  label="Total Patients"
+                  value={data.totalPatients}
+                  gradient="linear-gradient(135deg, #667eea, #764ba2)"
+                  trend="+12% this month"
+                />
+                <StatCard
+                  icon="🩺"
+                  label="Total Doctors"
+                  value={data.totalDoctors}
+                  gradient="linear-gradient(135deg, #11998e, #38ef7d)"
+                  trend="Active staff"
+                />
+                <StatCard
+                  icon="📅"
+                  label="Total Appointments"
+                  value={data.totalAppointments}
+                  gradient="linear-gradient(135deg, #f093fb, #f5576c)"
+                  trend="All time"
+                />
+                <StatCard
+                  icon="✅"
+                  label="Completed"
+                  value={data.appointmentStatusBreakdown.completed}
+                  gradient="linear-gradient(135deg, #4facfe, #00f2fe)"
+                  trend={
+                    data.totalAppointments > 0
+                      ? `${Math.round((data.appointmentStatusBreakdown.completed / data.totalAppointments) * 100)}% success rate`
+                      : 'No appointments yet'
+                  }
+                />
+              </div>
+
+              <div style={styles.chartsRow}>
+                <div style={styles.card}>
+                  <h3 style={styles.cardTitle}>Appointment Distribution</h3>
+                  {totalStatusCount === 0 ? (
+                    <p style={styles.emptyText}>No appointment data yet.</p>
+                  ) : (
+                    <div style={styles.donutContainer}>
+                      <svg viewBox="0 0 200 200" width="200" height="200">
+                        {buildDonutSegments()}
+                        <circle cx="100" cy="100" r="62" fill="#1e293b" />
+                        <text
+                          x="100"
+                          y="95"
+                          textAnchor="middle"
+                          fill="#f8fafc"
+                          fontSize="22"
+                          fontWeight="bold"
+                        >
+                          {totalStatusCount}
+                        </text>
+                        <text
+                          x="100"
+                          y="115"
+                          textAnchor="middle"
+                          fill="#94a3b8"
+                          fontSize="11"
+                        >
+                          Total
+                        </text>
+                      </svg>
+                      <div style={styles.legend}>
+                        {statusEntries.map(([key, value]) => (
+                          <div key={key} style={styles.legendItem}>
+                            <span
+                              style={{
+                                ...styles.legendDot,
+                                backgroundColor: getStatusColor(key),
+                              }}
+                            />
+                            <span style={styles.legendLabel}>
+                              {getStatusIcon(key)} {getStatusLabel(key)}
+                            </span>
+                            <span style={styles.legendValue}>
+                              {value}{' '}
+                              <span style={styles.legendPercent}>
+                                ({totalStatusCount > 0 ? Math.round((value / totalStatusCount) * 100) : 0}%)
+                              </span>
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div style={styles.card}>
+                  <h3 style={styles.cardTitle}>Status Breakdown</h3>
+                  {totalStatusCount === 0 ? (
+                    <p style={styles.emptyText}>No appointment data yet.</p>
+                  ) : (
+                    <div style={styles.barChartContainer}>
+                      {statusEntries.map(([key, value]) => {
+                        const percent =
+                          totalStatusCount > 0
+                            ? Math.round((value / totalStatusCount) * 100)
+                            : 0;
+                        return (
+                          <div key={key} style={styles.barRow}>
+                            <span style={styles.barLabel}>
+                              {getStatusIcon(key)} {getStatusLabel(key)}
+                            </span>
+                            <div style={styles.barTrack}>
+                              <div
+                                style={{
+                                  ...styles.barFill,
+                                  width: `${percent}%`,
+                                  backgroundColor: getStatusColor(key),
+                                }}
+                              />
+                            </div>
+                            <span style={styles.barValue}>
+                              {value}
+                              <span style={styles.barPercent}> ({percent}%)</span>
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div style={styles.card}>
+                <h3 style={styles.cardTitle}>📋 Summary Report</h3>
+                <table style={styles.table}>
+                  <thead>
+                    <tr>
+                      <th style={styles.th}>Metric</th>
+                      <th style={styles.th}>Value</th>
+                      <th style={styles.th}>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr style={styles.tr}>
+                      <td style={styles.td}>👥 Registered Patients</td>
+                      <td style={styles.td}>
+                        <strong>{data.totalPatients}</strong>
+                      </td>
+                      <td style={styles.td}>
+                        <span style={{ ...styles.badge, backgroundColor: '#667eea' }}>Active</span>
+                      </td>
+                    </tr>
+                    <tr style={styles.tr}>
+                      <td style={styles.td}>🩺 Registered Doctors</td>
+                      <td style={styles.td}>
+                        <strong>{data.totalDoctors}</strong>
+                      </td>
+                      <td style={styles.td}>
+                        <span style={{ ...styles.badge, backgroundColor: '#11998e' }}>Active</span>
+                      </td>
+                    </tr>
+                    <tr style={styles.tr}>
+                      <td style={styles.td}>📅 Total Appointments</td>
+                      <td style={styles.td}>
+                        <strong>{data.totalAppointments}</strong>
+                      </td>
+                      <td style={styles.td}>
+                        <span style={{ ...styles.badge, backgroundColor: '#f5576c' }}>All Time</span>
+                      </td>
+                    </tr>
+                    {statusEntries.map(([key, value]) => (
+                      <tr key={key} style={styles.tr}>
+                        <td style={styles.td}>
+                          {getStatusIcon(key)} {getStatusLabel(key)} Appointments
+                        </td>
+                        <td style={styles.td}>
+                          <strong>{value}</strong>
+                        </td>
+                        <td style={styles.td}>
+                          <span
                             style={{
-                              ...styles.barFill,
-                              width: `${percent}%`,
+                              ...styles.badge,
                               backgroundColor: getStatusColor(key),
                             }}
-                          />
-                        </div>
-                        <span style={styles.barValue}>
-                          {value}
-                          <span style={styles.barPercent}> ({percent}%)</span>
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+                          >
+                            {totalStatusCount > 0
+                              ? `${Math.round((value / totalStatusCount) * 100)}%`
+                              : '0%'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
-
-          {/* Summary Table */}
-          <div style={styles.card}>
-            <h3 style={styles.cardTitle}>📋 Summary Report</h3>
-            <table style={styles.table}>
-              <thead>
-                <tr>
-                  <th style={styles.th}>Metric</th>
-                  <th style={styles.th}>Value</th>
-                  <th style={styles.th}>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr style={styles.tr}>
-                  <td style={styles.td}>👥 Registered Patients</td>
-                  <td style={styles.td}>
-                    <strong>{data.totalPatients}</strong>
-                  </td>
-                  <td style={styles.td}>
-                    <span style={{ ...styles.badge, backgroundColor: '#667eea' }}>Active</span>
-                  </td>
-                </tr>
-                <tr style={styles.tr}>
-                  <td style={styles.td}>🩺 Registered Doctors</td>
-                  <td style={styles.td}>
-                    <strong>{data.totalDoctors}</strong>
-                  </td>
-                  <td style={styles.td}>
-                    <span style={{ ...styles.badge, backgroundColor: '#11998e' }}>Active</span>
-                  </td>
-                </tr>
-                <tr style={styles.tr}>
-                  <td style={styles.td}>📅 Total Appointments</td>
-                  <td style={styles.td}>
-                    <strong>{data.totalAppointments}</strong>
-                  </td>
-                  <td style={styles.td}>
-                    <span style={{ ...styles.badge, backgroundColor: '#f5576c' }}>All Time</span>
-                  </td>
-                </tr>
-                {statusEntries.map(([key, value]) => (
-                  <tr key={key} style={styles.tr}>
-                    <td style={styles.td}>
-                      {getStatusIcon(key)} {getStatusLabel(key)} Appointments
-                    </td>
-                    <td style={styles.td}>
-                      <strong>{value}</strong>
-                    </td>
-                    <td style={styles.td}>
-                      <span
-                        style={{
-                          ...styles.badge,
-                          backgroundColor: getStatusColor(key),
-                        }}
-                      >
-                        {totalStatusCount > 0
-                          ? `${Math.round((value / totalStatusCount) * 100)}%`
-                          : '0%'}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </>
-      ) : null}
+          ) : null}
+        </div>
+      </div>
     </div>
   );
 };
 
-// ─── Stat Card Sub-component ───────────────────────────────────────────────────
 const StatCard: React.FC<{
   icon: string;
   label: string;
@@ -352,87 +361,7 @@ const StatCard: React.FC<{
   </div>
 );
 
-// ─── Styles ────────────────────────────────────────────────────────────────────
 const styles: Record<string, React.CSSProperties> = {
-  wrapper: {
-    fontFamily: "'Inter', 'Segoe UI', sans-serif",
-    color: '#f8fafc',
-    minHeight: '100vh',
-    background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
-    padding: '28px',
-    boxSizing: 'border-box',
-  },
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: '32px',
-    flexWrap: 'wrap',
-    gap: '16px',
-  },
-  title: {
-    fontSize: '2rem',
-    fontWeight: 800,
-    margin: 0,
-    background: 'linear-gradient(90deg, #818cf8, #38bdf8)',
-    WebkitBackgroundClip: 'text',
-    WebkitTextFillColor: 'transparent',
-  },
-  subtitle: {
-    color: '#94a3b8',
-    margin: '4px 0 0',
-    fontSize: '0.95rem',
-  },
-  headerRight: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'flex-end',
-    gap: '8px',
-  },
-  lastUpdated: {
-    fontSize: '0.8rem',
-    color: '#64748b',
-  },
-  refreshBtn: {
-    padding: '8px 20px',
-    background: 'linear-gradient(135deg, #818cf8, #38bdf8)',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    fontWeight: 600,
-    fontSize: '0.9rem',
-    transition: 'opacity 0.2s',
-  },
-  errorBanner: {
-    background: 'rgba(239,68,68,0.15)',
-    border: '1px solid rgba(239,68,68,0.4)',
-    borderRadius: '10px',
-    padding: '14px 18px',
-    marginBottom: '24px',
-    color: '#fca5a5',
-    fontSize: '0.95rem',
-  },
-  loadingContainer: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingTop: '80px',
-    gap: '18px',
-  },
-  spinner: {
-    width: '48px',
-    height: '48px',
-    border: '5px solid #334155',
-    borderTopColor: '#818cf8',
-    borderRadius: '50%',
-    animation: 'spin 0.8s linear infinite',
-  },
-  loadingText: {
-    color: '#94a3b8',
-    fontSize: '1rem',
-  },
   statsGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
@@ -472,17 +401,17 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: '28px',
   },
   card: {
-    background: 'rgba(255,255,255,0.05)',
+    background: 'rgba(255,255,255,0.95)',
     backdropFilter: 'blur(12px)',
-    border: '1px solid rgba(255,255,255,0.08)',
+    border: '1px solid rgba(0,0,0,0.08)',
     borderRadius: '16px',
     padding: '28px',
-    boxShadow: '0 4px 24px rgba(0,0,0,0.2)',
+    boxShadow: '0 4px 24px rgba(0,0,0,0.1)',
   },
   cardTitle: {
     fontSize: '1.1rem',
     fontWeight: 700,
-    color: '#e2e8f0',
+    color: '#1a202c',
     marginBottom: '20px',
   },
   emptyText: {
@@ -515,16 +444,16 @@ const styles: Record<string, React.CSSProperties> = {
     flexShrink: 0,
   },
   legendLabel: {
-    color: '#cbd5e1',
+    color: '#4a5568',
     flex: 1,
   },
   legendValue: {
     fontWeight: 700,
-    color: '#f1f5f9',
+    color: '#1a202c',
   },
   legendPercent: {
     fontWeight: 400,
-    color: '#64748b',
+    color: '#718096',
     fontSize: '0.8rem',
   },
   barChartContainer: {
@@ -539,14 +468,14 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '0.88rem',
   },
   barLabel: {
-    color: '#cbd5e1',
+    color: '#4a5568',
     width: '110px',
     flexShrink: 0,
   },
   barTrack: {
     flex: 1,
     height: '10px',
-    background: 'rgba(255,255,255,0.08)',
+    background: 'rgba(0,0,0,0.08)',
     borderRadius: '99px',
     overflow: 'hidden',
   },
@@ -556,7 +485,7 @@ const styles: Record<string, React.CSSProperties> = {
     transition: 'width 0.8s ease',
   },
   barValue: {
-    color: '#f1f5f9',
+    color: '#1a202c',
     fontWeight: 700,
     width: '80px',
     textAlign: 'right',
@@ -564,7 +493,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   barPercent: {
     fontWeight: 400,
-    color: '#64748b',
+    color: '#718096',
     fontSize: '0.78rem',
   },
   table: {
@@ -575,19 +504,19 @@ const styles: Record<string, React.CSSProperties> = {
   th: {
     padding: '12px 16px',
     textAlign: 'left',
-    color: '#94a3b8',
+    color: '#718096',
     fontWeight: 600,
-    borderBottom: '1px solid rgba(255,255,255,0.08)',
+    borderBottom: '1px solid rgba(0,0,0,0.08)',
     textTransform: 'uppercase',
     fontSize: '0.78rem',
     letterSpacing: '0.05em',
   },
   tr: {
-    borderBottom: '1px solid rgba(255,255,255,0.05)',
+    borderBottom: '1px solid rgba(0,0,0,0.05)',
   },
   td: {
     padding: '14px 16px',
-    color: '#e2e8f0',
+    color: '#2d3748',
     verticalAlign: 'middle',
   },
   badge: {
@@ -599,13 +528,5 @@ const styles: Record<string, React.CSSProperties> = {
     color: '#fff',
   },
 };
-
-// Keyframe injection
-const styleTag = document.createElement('style');
-styleTag.innerHTML = `
-  @keyframes spin { to { transform: rotate(360deg); } }
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
-`;
-document.head.appendChild(styleTag);
 
 export default SystemAnalytics;

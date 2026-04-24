@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Table, Badge, Button, Spinner, Alert, Container, Modal } from 'react-bootstrap';
+import { Card, Table, Badge, Button, Spinner, Alert, Modal } from 'react-bootstrap';
 import { adminAPI } from '../services/api';
+import AdminSidebar from './AdminSidebar';
+import AdminNavbar from './AdminNavbar';
+import './AdminDashboard.css';
 
 interface User {
   userId: number;
@@ -19,6 +22,7 @@ const DoctorApproval: React.FC = () => {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [pendingAction, setPendingAction] = useState<{ id: number, approve: boolean, name: string } | null>(null);
@@ -60,39 +64,50 @@ const DoctorApproval: React.FC = () => {
   };
 
   if (loading) return (
-    <div className="text-center p-5">
-      <Spinner animation="border" variant="primary" />
-      <p className="mt-2 text-muted">Retrieving pending credentials...</p>
+    <div className="dashboard-wrapper">
+      <AdminSidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
+      <AdminNavbar onSidebarToggle={() => setSidebarOpen(!sidebarOpen)} />
+      <div className="dashboard-container">
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+          <div className="loading-text">Loading pending doctors...</div>
+        </div>
+      </div>
     </div>
   );
 
   return (
-    <Container fluid className="py-4 px-0">
-      <div className="d-flex justify-content-between align-items-center mb-4 px-3">
-        <div>
-          <h2 className="fw-bold mb-1">👨‍⚕️ Doctor Verification</h2>
-          <p className="text-muted mb-0">Review and approve medical practitioner applications</p>
-        </div>
-        <Badge bg="warning" text="dark" className="px-3 py-2 rounded-pill shadow-sm">
-          {doctors.length} Awaiting Review
-        </Badge>
-      </div>
+    <div className="dashboard-wrapper">
+      <AdminSidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
+      <AdminNavbar onSidebarToggle={() => setSidebarOpen(!sidebarOpen)} />
+      
+      <div className="dashboard-container">
+        <div className="dashboard-content">
+          <div className="dashboard-header">
+            <h1 className="dashboard-title">👨‍⚕️ Doctor Verification</h1>
+            <p className="dashboard-subtitle">Review and approve medical practitioner applications</p>
+          </div>
+          <div className="mb-3">
+            <Badge bg="warning" text="dark" className="px-3 py-2 rounded-pill shadow-sm">
+              {doctors.length} Awaiting Review
+            </Badge>
+          </div>
 
-      {error && <Alert variant="danger" className="mx-3 rounded-4" dismissible onClose={() => setError('')}>{error}</Alert>}
+          {error && <Alert variant="danger" dismissible onClose={() => setError('')}>{error}</Alert>}
 
-      <Card className="border-0 shadow-sm rounded-4 overflow-hidden mx-3">
-        <Card.Body className="p-0">
-          <div className="table-responsive">
-            <Table hover className="mb-0 align-middle">
-              <thead className="bg-light border-bottom">
-                <tr>
-                  <th className="px-4 py-3 text-muted small fw-bold text-uppercase">Doctor Info</th>
-                  <th className="py-3 text-muted small fw-bold text-uppercase">Specialization</th>
-                  <th className="py-3 text-muted small fw-bold text-uppercase">Contact</th>
-                  <th className="px-4 py-3 text-muted small fw-bold text-uppercase text-end">Verification</th>
-                </tr>
-              </thead>
-              <tbody>
+          <Card className="border-0 shadow-sm rounded-4 overflow-hidden">
+            <Card.Body className="p-0">
+              <div className="table-responsive">
+                <Table hover className="mb-0 align-middle">
+                  <thead className="bg-light border-bottom">
+                    <tr>
+                      <th className="px-4 py-3 text-muted small fw-bold text-uppercase">Doctor Info</th>
+                      <th className="py-3 text-muted small fw-bold text-uppercase">Specialization</th>
+                      <th className="py-3 text-muted small fw-bold text-uppercase">Contact</th>
+                      <th className="px-4 py-3 text-muted small fw-bold text-uppercase text-end">Verification</th>
+                    </tr>
+                  </thead>
+                  <tbody>
                 {doctors.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="text-center py-5 text-muted">
@@ -148,10 +163,10 @@ const DoctorApproval: React.FC = () => {
                   ))
                 )}
               </tbody>
-            </Table>
-          </div>
-        </Card.Body>
-      </Card>
+              </Table>
+            </div>
+          </Card.Body>
+        </Card>
 
       {/* Confirmation Modal */}
       <Modal show={showConfirmModal} onHide={() => setShowConfirmModal(false)} centered>
@@ -178,11 +193,13 @@ const DoctorApproval: React.FC = () => {
         </Modal.Body>
       </Modal>
 
-      <style>{`
-        .bg-primary-soft { background-color: rgba(13, 110, 253, 0.1); }
-        .approval-row:hover { background-color: #f8fbff; transition: all 0.2s; }
-      `}</style>
-    </Container>
+          <style>{`
+            .bg-primary-soft { background-color: rgba(13, 110, 253, 0.1); }
+            .approval-row:hover { background-color: #f8fbff; transition: all 0.2s; }
+          `}</style>
+        </div>
+      </div>
+    </div>
   );
 };
 

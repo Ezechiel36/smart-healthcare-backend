@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Button, ListGroup, Badge, Alert, Spinner, Row, Col, Modal, Form, Container } from 'react-bootstrap';
+import { Card, Button, Badge, Alert, Spinner, Modal, Form } from 'react-bootstrap';
 import { scheduleAPI } from '../services/api';
+import DoctorSidebar from './DoctorSidebar';
+import DoctorNavbar from './DoctorNavbar';
+import './DoctorDashboard.css';
 
 interface Schedule {
   scheduleId: number;
@@ -14,12 +17,13 @@ const ManageSchedule: React.FC = () => {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [newSlot, setNewSlot] = useState({ startTime: '', endTime: '' });
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
-  
   useEffect(() => {
     fetchSchedules();
   }, []);
@@ -77,68 +81,162 @@ const ManageSchedule: React.FC = () => {
   };
 
   const handleDelete = async (id: number) => {
-    if (!window.confirm('Delete this availability?')) return;
+    if (!window.confirm('Are you sure you want to delete this availability slot?')) return;
     try {
+      setDeletingId(id);
       await scheduleAPI.deleteSchedule(id);
       await fetchSchedules();
+      alert('Availability slot deleted successfully!');
     } catch (err: any) {
       alert('Delete failed: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setDeletingId(null);
     }
   };
 
-  if (loading) return <Spinner animation="border" className="m-5" />;
+  if (loading) return (
+    <div className="dashboard-wrapper">
+      <DoctorSidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
+      <DoctorNavbar onSidebarToggle={() => setSidebarOpen(!sidebarOpen)} />
+      <div className="dashboard-container">
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+          <div className="loading-text">Loading schedules...</div>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
-    <Container fluid className="py-4">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <div>
-          <h2 className="fw-bold">🕒 Manage My Schedule</h2>
-          <p className="text-muted">Set your working hours and availability</p>
-        </div>
-        <Button variant="primary" onClick={() => {
-          setEditingId(null);
-          setNewSlot({ startTime: '', endTime: '' });
-          setShowModal(true);
-        }}>+ Add Time Slot</Button>
-      </div>
+    <div className="dashboard-wrapper">
+      <DoctorSidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
+      <DoctorNavbar onSidebarToggle={() => setSidebarOpen(!sidebarOpen)} />
+      <div className="dashboard-container">
+        <div className="dashboard-content">
+          <div className="dashboard-header">
+            <h1 className="dashboard-title">🕒 Manage Schedule</h1>
+            <p className="dashboard-subtitle">Set your working hours and availability</p>
+          </div>
 
-      {error && <Alert variant="danger">{error}</Alert>}
+          {error && <Alert variant="danger" dismissible onClose={() => setError('')}>{error}</Alert>}
 
-      <Row>
-        <Col md={12}>
-          <Card className="border-0 shadow-sm">
-            <Card.Header className="bg-white py-3">
-              <h5 className="mb-0">Your Availability Slots</h5>
-            </Card.Header>
-            <Card.Body>
-              {schedules.length === 0 ? (
-                <div className="text-center py-5">
-                  <p className="text-muted">You haven't added any availability yet.</p>
+          <div className="dashboard-grid">
+            <div className="stats-section">
+              <div className="section-header">
+                <h2 className="section-title">Overview</h2>
+                <p className="section-subtitle">Your schedule at a glance</p>
+              </div>
+              <div className="stats-grid">
+                <Card className="stat-card schedules">
+                  <Card.Body>
+                    <div className="stat-icon-wrapper">
+                      <div className="stat-icon">📅</div>
+                    </div>
+                    <div className="stat-content">
+                      <div className="stat-number">{schedules.length}</div>
+                      <div className="stat-label">Total Slots</div>
+                    </div>
+                    <div className="stat-trend positive">
+                      <span className="trend-icon">📊</span>
+                      <span className="trend-value">All</span>
+                    </div>
+                  </Card.Body>
+                </Card>
+                <Card className="stat-card active">
+                  <Card.Body>
+                    <div className="stat-icon-wrapper">
+                      <div className="stat-icon">✅</div>
+                    </div>
+                    <div className="stat-content">
+                      <div className="stat-number">{schedules.filter(s => !s.isBooked).length}</div>
+                      <div className="stat-label">Available</div>
+                    </div>
+                    <div className="stat-trend positive">
+                      <span className="trend-icon">↑</span>
+                      <span className="trend-value">{schedules.length > 0 ? Math.round((schedules.filter(s => !s.isBooked).length / schedules.length) * 100) : 0}%</span>
+                    </div>
+                  </Card.Body>
+                </Card>
+                <Card className="stat-card notifications">
+                  <Card.Body>
+                    <div className="stat-icon-wrapper">
+                      <div className="stat-icon">🔒</div>
+                    </div>
+                    <div className="stat-content">
+                      <div className="stat-number">{schedules.filter(s => s.isBooked).length}</div>
+                      <div className="stat-label">Booked</div>
+                    </div>
+                    <div className="stat-trend neutral">
+                      <span className="trend-icon">→</span>
+                      <span className="trend-value">{schedules.length > 0 ? Math.round((schedules.filter(s => s.isBooked).length / schedules.length) * 100) : 0}%</span>
+                    </div>
+                  </Card.Body>
+                </Card>
+              </div>
+            </div>
+
+            <div className="status-section">
+              <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <h2 className="section-title">Availability Slots</h2>
+                  <p className="section-subtitle">Your current schedule</p>
                 </div>
-              ) : (
-                <ListGroup variant="flush">
-                  {schedules.map((s) => (
-                    <ListGroup.Item key={s.scheduleId} className="px-0 py-3">
-                      <Row className="align-items-center">
-                        <Col md={5}>
-                          <div className="fw-bold">{new Date(s.startTime).toLocaleDateString()}</div>
-                          <div className="text-muted">
-                            {new Date(s.startTime).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})} - 
-                            {new Date(s.endTime).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}
+                <Button 
+                  variant="primary" 
+                  className="add-slot-btn"
+                  onClick={() => {
+                    setEditingId(null);
+                    setNewSlot({ startTime: '', endTime: '' });
+                    setShowModal(true);
+                  }}
+                >
+                  <span className="btn-icon">+</span>
+                  <span>Add Time Slot</span>
+                </Button>
+              </div>
+              <Card className="status-card">
+                <Card.Body>
+                  {schedules.length === 0 ? (
+                    <div className="text-center py-5">
+                      <div className="notification-empty-icon">📅</div>
+                      <p className="text-muted mb-3">You haven't added any availability yet.</p>
+                      <Button 
+                        variant="outline-primary" 
+                        className="add-first-slot-btn"
+                        onClick={() => {
+                          setEditingId(null);
+                          setNewSlot({ startTime: '', endTime: '' });
+                          setShowModal(true);
+                        }}
+                      >
+                        <span className="btn-icon">+</span>
+                        <span>Add Your First Time Slot</span>
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="schedule-list">
+                      {schedules.map((s) => (
+                        <div key={s.scheduleId} className="schedule-item">
+                          <div className="schedule-icon">
+                            📅
                           </div>
-                        </Col>
-                        <Col md={3}>
-                          <Badge bg={s.isBooked ? 'danger' : 'success'} className="px-3 py-2">
-                            {s.isBooked ? 'Booked' : 'Available'}
-                          </Badge>
-                        </Col>
-                        <Col md={4} className="text-end">
-                          {!s.isBooked && (
-                            <>
+                          <div className="schedule-content">
+                            <div className="schedule-date">{new Date(s.startTime).toLocaleDateString()}</div>
+                            <div className="schedule-time">
+                              {new Date(s.startTime).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})} - 
+                              {new Date(s.endTime).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}
+                            </div>
+                          </div>
+                          <div className="schedule-actions">
+                            <Badge bg={s.isBooked ? 'danger' : 'success'} className="rounded-pill">
+                              {s.isBooked ? 'Booked' : 'Available'}
+                            </Badge>
+                            {!s.isBooked && (
+                              <div className="action-buttons">
                                 <Button 
-                                  variant="warning" 
-                                  size="sm" 
-                                  className="me-2 text-dark"
+                                  variant="outline-primary"
+                                  size="sm"
+                                  className="edit-btn"
                                   onClick={() => {
                                     setEditingId(s.scheduleId);
                                     setNewSlot({
@@ -148,23 +246,38 @@ const ManageSchedule: React.FC = () => {
                                     setShowModal(true);
                                   }}
                                 >
-                                  Reschedule
+                                  <span className="btn-icon">✏️</span>
+                                  <span>Edit</span>
                                 </Button>
-                              <Button variant="outline-danger" size="sm" onClick={() => handleDelete(s.scheduleId)}>
-                                Delete
-                              </Button>
-                            </>
-                          )}
-                        </Col>
-                      </Row>
-                    </ListGroup.Item>
-                  ))}
-                </ListGroup>
-              )}
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
+                                <Button 
+                                  variant="outline-danger" 
+                                  size="sm" 
+                                  className="delete-btn"
+                                  onClick={() => handleDelete(s.scheduleId)}
+                                  disabled={deletingId === s.scheduleId}
+                                >
+                                  {deletingId === s.scheduleId ? (
+                                    <Spinner size="sm" animation="border" />
+                                  ) : (
+                                    <>
+                                      <span className="btn-icon">🗑️</span>
+                                      <span>Delete</span>
+                                    </>
+                                  )}
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </Card.Body>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <Modal show={showModal} onHide={() => setShowModal(false)} centered>
         <Modal.Header closeButton>
@@ -193,13 +306,30 @@ const ManageSchedule: React.FC = () => {
           </Form>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowModal(false)}>Cancel</Button>
-          <Button variant="primary" onClick={handleSaveAvailability} disabled={saving}>
-            {saving ? <Spinner size="sm" animation="border" /> : (editingId ? 'Save Changes' : 'Save Availability')}
+          <Button variant="secondary" onClick={() => setShowModal(false)} className="cancel-btn">
+            Cancel
+          </Button>
+          <Button 
+            variant="primary" 
+            onClick={handleSaveAvailability} 
+            disabled={saving}
+            className="save-btn"
+          >
+            {saving ? (
+              <>
+                <Spinner size="sm" animation="border" className="me-2" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <span className="btn-icon">💾</span>
+                <span>{editingId ? 'Save Changes' : 'Save Availability'}</span>
+              </>
+            )}
           </Button>
         </Modal.Footer>
       </Modal>
-    </Container>
+    </div>
   );
 };
 

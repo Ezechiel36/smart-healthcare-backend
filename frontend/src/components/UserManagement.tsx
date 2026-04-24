@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Table, Badge, Spinner, Alert, Container, Button, Modal, Tooltip, OverlayTrigger, Form } from 'react-bootstrap';
+import { Card, Table, Badge, Spinner, Alert, Button, Modal, Tooltip, OverlayTrigger, Form } from 'react-bootstrap';
 import { adminAPI, authAPI } from '../services/api';
+import AdminSidebar from './AdminSidebar';
+import AdminNavbar from './AdminNavbar';
+import './AdminDashboard.css';
 
 interface User {
   userId: number;
@@ -13,6 +16,7 @@ const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [showViewModal, setShowViewModal] = useState(false);
@@ -95,48 +99,57 @@ const UserManagement: React.FC = () => {
   };
 
   if (loading) return (
-    <div className="text-center p-5">
-      <Spinner animation="border" variant="primary" />
-      <p className="mt-2 text-muted">Synchronizing secure user records...</p>
+    <div className="dashboard-wrapper">
+      <AdminSidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
+      <AdminNavbar onSidebarToggle={() => setSidebarOpen(!sidebarOpen)} />
+      <div className="dashboard-container">
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+          <div className="loading-text">Loading users...</div>
+        </div>
+      </div>
     </div>
   );
 
   return (
-    <Container fluid className="py-4 px-0">
-      <div className="d-flex justify-content-between align-items-end mb-4 px-3">
-        <div>
-          <h2 className="fw-bold mb-1">👥 User Management</h2>
-          <p className="text-muted mb-0">Security and access control for all registered profiles</p>
-        </div>
-        <div className="d-flex gap-2 align-items-center">
-           <Button 
-            variant="primary" 
-            className="rounded-pill px-4 fw-bold shadow-sm"
-            onClick={() => setShowCreateModal(true)}
-           >
-             + Create User
-           </Button>
-           <Badge bg="light" text="dark" className="border px-3 py-2 rounded-pill shadow-sm">Total: {users.length}</Badge>
-        </div>
-      </div>
+    <div className="dashboard-wrapper">
+      <AdminSidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
+      <AdminNavbar onSidebarToggle={() => setSidebarOpen(!sidebarOpen)} />
+      
+      <div className="dashboard-container">
+        <div className="dashboard-content">
+          <div className="dashboard-header">
+            <h1 className="dashboard-title">👥 User Management</h1>
+            <p className="dashboard-subtitle">Security and access control for all registered profiles</p>
+          </div>
+          <div className="d-flex gap-2 align-items-center mb-3">
+            <Button 
+              variant="primary" 
+              className="rounded-pill px-4 fw-bold shadow-sm"
+              onClick={() => setShowCreateModal(true)}
+            >
+              + Create User
+            </Button>
+            <Badge bg="light" text="dark" className="border px-3 py-2 rounded-pill shadow-sm">Total: {users.length}</Badge>
+          </div>
 
-      {error && <Alert variant="danger" className="mx-3 rounded-4" dismissible onClose={() => setError('')}>{error}</Alert>}
+          {error && <Alert variant="danger" dismissible onClose={() => setError('')}>{error}</Alert>}
 
-      <Card className="border-0 shadow-sm rounded-4 overflow-hidden mx-3">
-        <Card.Body className="p-0">
-          <div className="table-responsive">
-            <Table hover className="mb-0 align-middle">
-              <thead className="bg-light border-bottom">
-                <tr>
-                  <th className="px-4 py-3 text-muted small fw-bold text-uppercase">ID</th>
-                  <th className="py-3 text-muted small fw-bold text-uppercase">User Identity</th>
-                  <th className="py-3 text-muted small fw-bold text-uppercase">Contact Email</th>
-                  <th className="py-3 text-muted small fw-bold text-uppercase text-center">System Role</th>
-                  <th className="py-3 text-muted small fw-bold text-uppercase text-center">Status</th>
-                  <th className="px-4 py-3 text-muted small fw-bold text-uppercase text-end">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
+          <Card className="border-0 shadow-sm rounded-4 overflow-hidden">
+            <Card.Body className="p-0">
+              <div className="table-responsive">
+                <Table hover className="mb-0 align-middle">
+                  <thead className="bg-light border-bottom">
+                    <tr>
+                      <th className="px-4 py-3 text-muted small fw-bold text-uppercase">ID</th>
+                      <th className="py-3 text-muted small fw-bold text-uppercase">User Identity</th>
+                      <th className="py-3 text-muted small fw-bold text-uppercase">Contact Email</th>
+                      <th className="py-3 text-muted small fw-bold text-uppercase text-center">System Role</th>
+                      <th className="py-3 text-muted small fw-bold text-uppercase text-center">Status</th>
+                      <th className="px-4 py-3 text-muted small fw-bold text-uppercase text-end">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
                 {users.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="text-center py-5 text-muted">
@@ -192,10 +205,10 @@ const UserManagement: React.FC = () => {
                   ))
                 )}
               </tbody>
-            </Table>
-          </div>
-        </Card.Body>
-      </Card>
+                </Table>
+              </div>
+            </Card.Body>
+          </Card>
 
       {/* Create User Modal */}
       <Modal show={showCreateModal} onHide={() => setShowCreateModal(false)} centered>
@@ -337,12 +350,14 @@ const UserManagement: React.FC = () => {
         </Modal.Body>
       </Modal>
 
-      <style>{`
-        .user-row-premium:hover { background-color: #f8fbff !important; transition: all 0.2s ease; }
-        .user-row-premium td { border-bottom: 1px solid #f1f5f9; }
-        .user-modal-premium .modal-content { border-radius: 20px; border: none; box-shadow: 0 15px 50px rgba(0,0,0,0.1); }
-      `}</style>
-    </Container>
+          <style>{`
+            .user-row-premium:hover { background-color: #f8fbff !important; transition: all 0.2s ease; }
+            .user-row-premium td { border-bottom: 1px solid #f1f5f9; }
+            .user-modal-premium .modal-content { border-radius: 20px; border: none; box-shadow: 0 15px 50px rgba(0,0,0,0.1); }
+          `}</style>
+        </div>
+      </div>
+    </div>
   );
 };
 
