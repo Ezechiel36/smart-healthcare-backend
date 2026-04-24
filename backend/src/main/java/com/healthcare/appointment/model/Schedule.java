@@ -15,6 +15,9 @@ public class Schedule {
     @JoinColumn(name = "doctor_id", nullable = false)
     private Doctor doctor;
 
+    @OneToOne(mappedBy = "schedule", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Appointment appointment;
+
     @Column(nullable = false)
     private LocalDateTime startTime;
 
@@ -73,6 +76,14 @@ public class Schedule {
 
     public void setIsBooked(Boolean isBooked) {
         this.isBooked = isBooked;
+    }
+
+    public Appointment getAppointment() {
+        return appointment;
+    }
+
+    public void setAppointment(Appointment appointment) {
+        this.appointment = appointment;
     }
 
     @Override
